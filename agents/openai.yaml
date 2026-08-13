@@ -1,0 +1,4 @@
+interface:
+  display_name: "资讯大数据报告"
+  short_description: "基于 HandaaS 资讯大数据 MCP，生成企业资讯明细 / 情感统计 / 行业资讯 / 主题跟踪的专业 HTML / Markdown / JSON 报告。"
+  default_prompt: "使用 $information-report 生成「企业名称/关键词」的资讯大数据报告：调用资讯 MCP 工具，产出 HTML + Markdown + JSON 三件套。"
