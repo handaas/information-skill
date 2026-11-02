@@ -1,6 +1,6 @@
 ---
 name: information-report
-description: Use for generating a professional information big-data report (资讯大数据报告) from the HandaaS information MCP — covering 企业资讯明细、企业资讯情感统计、行业资讯、资讯主题跟踪. Trigger when users ask for “资讯大数据报告”, “资讯分析报告”, “查一家公司的资讯”, “企业资讯监控”, “行业资讯”, “资讯主题跟踪”, “资讯检索”, or “企业舆情声量”. Infer the canonical enterprise name and topic keyword, pick the right MCP tools, and produce HTML + Markdown + JSON reports automatically.
+description: Use for generating a professional information big-data report (资讯大数据报告) from the HandaaS information MCP — covering 企业资讯明细、企业资讯情感统计、行业资讯、资讯主题跟踪. Trigger when users ask for “资讯大数据报告”, “资讯分析报告”, “查一家公司的资讯”, “企业资讯监控”, “行业资讯”, “资讯主题跟踪”, “资讯检索”, or “企业舆情声量”. Infer the canonical enterprise name and topic keyword, pick the right MCP tools, and produce HTML + Markdown + JSON reports automatically. MCP 服务名称触发词：资讯热点跟踪。
 ---
 
 # 资讯大数据报告
@@ -28,6 +28,8 @@ description: Use for generating a professional information big-data report (资�
 
 ## MCP 服务入口
 
+- MCP 服务当前名称：资讯热点跟踪（连接仍使用原服务目录标识）。
+
 - 上游 MCP 项目：`handaas-mcp-server/information-mcp-server`（位于 `HANDAAS_MCP_SERVER_ROOT` 或本仓库同级目录）。
 - Remote MCP：设置环境变量 `INFORMATION_MCP_URL`（streamable-http），可选 `INFORMATION_MCP_TOKEN`。
 - 本地 MCP：设置 `HANDAAS_MCP_SERVER_ROOT` 指向 `handaas-mcp-server` 仓库根目录；该 server 自己的 `.env` 提供 `INTEGRATOR_ID` / `SECRET_ID` / `SECRET_KEY`。
@@ -37,6 +39,17 @@ description: Use for generating a professional information big-data report (资�
 
 - 不清楚该 MCP 有哪些工具、参数、返回字段、何时调用：`references/mcp-tools-reference.md`。
 - 报告结构、章节、质量底线、渲染工作流：`references/report-output.md`。
+
+## 付费调用与预算约束（必读）
+
+1. 每次业务工具调用与每次明细翻页都可能计费；想要 total/页数只是为了精确规划，不构成默认全量拉取的授权。
+2. 调用前先推演所需结论与数据维度，确定工具/参数计划、必要页数与最大调用预算。total 未知时，第一个必要明细页既是数据又是 total 探测，绝不为此重复付费。
+3. 优先用统计/画像/聚合接口（如 `information_monitor` statistics 视图）回答问题；只在结论、图表、代表记录或明确全量/计数需求确实需要时取明细。只有确实要求综合报告时才跑完整流水线，绝不因为工具存在就全部调用相关维度。
+4. 用 schema 允许的最大合理 pageSize 取所需行数，证据/样本目标满足即停，且不超过明确预算。更多调用必须有具体缺失结论支撑，不因为"补齐所有章节"而追加；不得用样本分布冒充全量结论。预算不足以支撑关键结论时，先说明证据缺口与预计额外调用数，等明确授权后再扩大——不得静默降级结论，也不得静默扩大计费范围。
+5. 当前任务/报告内复用相同请求（含第一页规划数据）：同一 tool+相同参数只调用一次；不要为渲染重跑 compose/MCP——用已保存 JSON 本地重渲染；不得自动重试、重复取统计/明细或并行获取相同数据；补充查询先列明缺口并复用已返回记录。
+6. `total_pages`/`remaining_pages` 是按请求 pageSize 的估算；短但非空的页仍有剩余记录时在预算内继续。只有稳定有效 total 与实际扫描数一致才算完整采集；报错、提前空页、重复页、total 变更/缺失、数量溢出均为不完整。显式预算或样本目标停止即部分采集，绝不宣称全量。不调用无关或不必要维度的工具。
+
+本 skill 分页明细接口：`information_company_news` / `information_search` / `information_topic`（pageSize≤50），预算经 `--max-pages`（默认 1）传递；`information_monitor`（statistics 视图）与无分页场景为单次调用，不进入分页预算。`information_search` 与 `information_topic` 复用同一上游产品且参数一致，同参时直接复用已付费数据，不重复计费。
 
 ## 意图路由
 
@@ -78,6 +91,7 @@ python scripts/compose_report.py \
 # 真实查询 + 渲染（企业资讯 + 统计 + 行业 + 主题）
 python scripts/compose_report.py \
   --enterprise "示例科技有限公司" \
+  --max-pages 1 \
   --output output/information.json \
   --report-output output/information.html
 

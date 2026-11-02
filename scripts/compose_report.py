@@ -21,10 +21,9 @@ import argparse
 import datetime as dt
 import json
 import pathlib
-import sys
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional, Sequence
 
-from common import REPORT_BANNER, REPORT_TYPE, json_dumps, load_json_file, print_json
+from common import REPORT_BANNER, REPORT_TYPE, attach_pagination, call_tool_once, collect_detail_pages, die, json_dumps, load_json_file, paid_call_scope, print_json
 import mcp_client
 from render_report import render_html, render_markdown, html_to_pdf
 
@@ -45,39 +44,118 @@ DEFAULT_MONITOR_VIEW = "statistics"
 # --------------------------------------------------------------------------- #
 
 
-def _is_api_error(value: Any) -> bool:
-    """Detect MCP API error responses (not empty data, but actual failures like 405)."""
-    if value is None:
-        return False
+def _is_empty_response(value: Any) -> bool:
+    if value is None or value == "" or value == {}:
+        return True
     if isinstance(value, str):
-        return any(s in value for s in ("接口调用失败", "查询失败", "状态码：4", "状态码：5"))
+        text = value.strip().lower()
+        return any(token in text for token in ("查询数据为空", "暂无数据", "未查询到", "未检索到", "no data"))
     if isinstance(value, dict):
-        for v in value.values():
-            if isinstance(v, str) and any(s in v for s in ("接口调用失败", "查询失败", "状态码：4", "状态码：5")):
+        for key in ("text", "message", "msg"):
+            if key in value and _is_empty_response(value.get(key)):
                 return True
+        containers = [value.get(key) for key in ("resultList", "list", "items", "data") if key in value]
+        if containers and all(item in (None, [], {}) for item in containers):
+            total = value.get("total")
+            return total in (None, 0, "0")
     return False
 
+
+def _is_api_error(value: Any) -> bool:
+    """Return True only for failed calls; platform empty-data text is not an error."""
+    if value is None or _is_empty_response(value):
+        return False
+    if isinstance(value, str):
+        text = value.lower()
+        return any(token in text for token in (
+            "接口调用失败", "查询失败", "状态码：4", "状态码：5",
+            "upstream timeout", "tool failed", "unauthorized", "forbidden",
+        ))
+    if isinstance(value, dict):
+        if value.get("isError") is True or value.get("is_error") is True or value.get("success") is False:
+            return True
+        if any(value.get(key) not in (None, "", False) for key in ("_error", "error")):
+            return True
+        code = value.get("code")
+        if code not in (None, 0, "0", 200, "200", 10001, "10001"):
+            return True
+        return any(_is_api_error(value.get(key)) for key in ("text", "message", "msg") if key in value)
+    return False
+
+
 def _first_list(value: Any) -> List[Any]:
+    if _is_api_error(value) or _is_empty_response(value):
+        return []
     if isinstance(value, list):
         return value
     if isinstance(value, dict):
-        if _is_api_error(value):
-            return []
-        for key in ("resultList", "list", "items", "data"):
+        for key in ("resultList", "list", "items"):
             if isinstance(value.get(key), list):
                 return value[key]
-    if value in (None, "", {}):
-        return []
-    return [value]
+        nested = value.get("data")
+        if isinstance(nested, list):
+            return nested
+        if isinstance(nested, dict):
+            return _first_list(nested)
+    return []
 
 
 def _first_record(value: Any) -> Dict[str, Any]:
+    if _is_api_error(value) or _is_empty_response(value):
+        return {}
     for record in _first_list(value):
-        if isinstance(record, dict):
+        if isinstance(record, dict) and _has_evidence(record):
             return record
     if isinstance(value, dict):
-        return value
+        envelope = {"resultList", "list", "items", "data", "total", "pageNo", "pageSize", "text", "message", "msg", "code"}
+        if not set(value).issubset(envelope) and _has_evidence(value):
+            return value
     return {}
+
+
+def _has_evidence(value: Any) -> bool:
+    if value is None or value == "" or value == "-":
+        return False
+    if _is_api_error(value) or _is_empty_response(value):
+        return False
+    if isinstance(value, dict):
+        return any(_has_evidence(item) for key, item in value.items() if key not in {"total", "pageNo", "pageSize"})
+    if isinstance(value, (list, tuple, set)):
+        return any(_has_evidence(item) for item in value)
+    return True
+
+
+def _meaningful_row(row: Mapping[str, Any]) -> bool:
+    return any(_has_evidence(value) for value in row.values())
+
+
+def _attach_call_status(report: Dict[str, Any], calls: Mapping[str, Any]) -> Dict[str, Any]:
+    """Disclose failed and genuine-empty domains without exposing upstream details."""
+    failed = [name for name, payload in calls.items() if _is_api_error(payload)]
+    empty = [name for name, payload in calls.items() if not _is_api_error(payload) and _is_empty_response(payload)]
+    source = report.setdefault("data_source", {})
+    source["failed_products"] = failed
+    source["empty_products"] = empty
+    return report
+
+
+def _apply_resolution_limit(report: Dict[str, Any], resolved: Mapping[str, Any]) -> Dict[str, Any]:
+    subject = report.setdefault("subject", {})
+    subject["resolved"] = False
+    subject["requires_confirmation"] = True
+    subject["resolve_reason"] = resolved.get("reason", "主体未唯一确认")
+    subject["candidate_sample"] = list(resolved.get("candidate_sample") or [])
+    if resolved.get("fuzzy_total") is not None:
+        subject["fuzzy_total"] = resolved.get("fuzzy_total")
+    message = "输入未唯一确认到特定企业；已停止主体专属数据调用，不生成该企业的经营、风险或舆情评价。请使用候选企业全称或企业标识重试。"
+    report["abstract"] = message
+    report["summary"] = message
+    report["executive_summary"] = [message]
+    report["metrics"] = []
+    report["representative_records"] = []
+    report["insights"] = [{"feature": "主体确认受限", "evidence": subject["resolve_reason"], "interpretation": message}]
+    report.setdefault("data_source", {})["subject_resolution"] = "confirmation_required"
+    return report
 
 
 def _text(value: Any, limit: int = 0) -> str:
@@ -102,7 +180,7 @@ def _int(value: Any) -> Optional[int]:
 
 def _safe_call(tool: str, arguments: Dict[str, Any]) -> Any:
     try:
-        result = mcp_client.call_tool(tool, arguments)
+        result = call_tool_once(mcp_client.call_tool, tool, arguments)
         # Detect API error responses (405, etc.) and return error marker
         if _is_api_error(result):
             return {"_error": "API错误", "_raw": result}
@@ -136,10 +214,10 @@ def resolve_enterprise_name(raw: str) -> Dict[str, Any]:
     """
     raw = (raw or "").strip()
     if not raw:
-        return {"keyword": "", "enterprise": "", "resolved": False, "reason": "关键词为空"}
+        return {"keyword": "", "enterprise": "", "resolved": False, "reason": "关键词为空", "subject_type": "topic"}
     if any(suffix in raw for suffix in ("公司", "集团", "有限", "院", "厂", "中心", "事务所", "合作社", "合伙")):
-        return {"keyword": raw, "enterprise": raw, "resolved": True, "reason": "视为企业全称"}
-    return {"keyword": raw, "enterprise": raw, "resolved": True, "reason": "按关键词/企业名称直查（无模糊查询工具）"}
+        return {"keyword": raw, "enterprise": raw, "resolved": True, "reason": "视为企业全称", "subject_type": "enterprise"}
+    return {"keyword": raw, "enterprise": "", "resolved": True, "reason": "按资讯主题关键词检索", "subject_type": "topic"}
 
 
 def _derive_core_metrics(metrics: List[Dict[str, Any]], core: Mapping[str, Any]) -> List[Dict[str, Any]]:
@@ -177,9 +255,12 @@ def _derive_core_metrics(metrics: List[Dict[str, Any]], core: Mapping[str, Any])
 # --------------------------------------------------------------------------- #
 
 def build_subject(raw: str, resolved: Mapping[str, Any], keyword_type: str, opts: Mapping[str, Any]) -> Dict[str, Any]:
+    subject_type = resolved.get("subject_type") or "enterprise"
+    match_keyword = resolved.get("keyword") or resolved.get("enterprise") or raw
     return {
-        "enterprise": resolved.get("enterprise") or raw,
-        "matchKeyword": resolved.get("enterprise") or raw,
+        "enterprise": (resolved.get("enterprise") or raw) if subject_type == "enterprise" else "",
+        "subject_type": subject_type,
+        "matchKeyword": match_keyword,
         "keywordType": keyword_type,
         "match_raw": raw,
         "resolved": bool(resolved.get("resolved")),
@@ -201,14 +282,18 @@ def build_metrics(company_total: Any, industry_total: Any, topic_total: Any, sta
         metrics.append({"label": "主题资讯数", "value": _text(topic_total), "hint": "主题跟踪命中数"})
     s = stats if isinstance(stats, dict) and not _is_error(stats) else {}
     # newsSentimentStats: dict of sentiment->count
-    sentiment_stats = s.get("newsSentimentStats") if isinstance(s.get("newsSentimentStats"), dict) else {}
+    raw_sentiment_stats = s.get("newsSentimentStats")
+    sentiment_stats: Mapping[str, Any] = raw_sentiment_stats if isinstance(raw_sentiment_stats, dict) else {}
     label_map = {"positive": "正面", "negative": "负面", "neutral": "中性", "unknown": "未知"}
     # Pre-compute shares for delta annotations.
     total_sent = 0.0
     sent_counts: Dict[str, float] = {}
     for key in ("positive", "negative", "neutral", "unknown"):
         try:
-            n = float(sentiment_stats.get(key))
+            raw_count = sentiment_stats.get(key)
+            if raw_count is None:
+                raise ValueError("missing sentiment count")
+            n = float(raw_count)
             sent_counts[key] = n
             total_sent += n
         except (TypeError, ValueError):
@@ -223,19 +308,34 @@ def build_metrics(company_total: Any, industry_total: Any, topic_total: Any, sta
     return [m for m in metrics if m.get("value") not in ("", None, "-")]
 
 
+def requested_products(subject: Mapping[str, Any]) -> List[Dict[str, str]]:
+    products: List[Dict[str, str]] = []
+    if subject.get("subject_type") == "enterprise":
+        products.extend([
+            {"name": "企业资讯查询", "product_id": "66b485eadaf8c77fb249a455"},
+            {"name": "企业资讯监控", "product_id": "66b338e274bf098447db7efd"},
+        ])
+    products.extend([
+        {"name": "资讯全文检索", "product_id": "6a60928a935bb6a5c6bbd68f"},
+        {"name": "资讯主题跟踪", "product_id": "6a60928a935bb6a5c6bbd68f"},
+    ])
+    return products
+
+
 def build_caliber(subject: Mapping[str, Any], opts: Mapping[str, Any]) -> Dict[str, Any]:
     sentiment_hint = ""
-    if opts.get("sentiment"):
+    if opts.get("sentiment") is not None:
         sentiment_hint = f"；sentimentLabel={opts.get('sentiment')}"
     date_hint = ""
     if opts.get("pub_start") or opts.get("pub_end"):
         date_hint = f"；发布区间 {opts.get('pub_start') or '不限'}~{opts.get('pub_end') or '不限'}"
+    products = [item["name"] for item in requested_products(subject)]
     return {
         "match_target": subject.get("enterprise") or subject.get("match_raw"),
         "match_type": f"企业资讯按企业主体匹配（keywordType={subject.get('keywordType', 'name')}）；行业/主题/全文检索按关键词匹配{sentiment_hint}{date_hint}",
-        "data_scope": "企业资讯明细、企业资讯情感统计、行业资讯、资讯主题跟踪",
-        "products": ["资讯全文检索", "企业资讯查询", "行业资讯检索", "资讯主题跟踪", "企业资讯监控"],
-        "limit": "数据来自公开新闻资讯；情感分布与趋势可能受数据源覆盖与更新延迟影响。",
+        "data_scope": "、".join(products),
+        "products": products,
+        "limit": "数据来自公开新闻资讯；记录数不等于独立事件数，跨产品数量不可相加。全文检索、主题跟踪及企业资讯可能返回同题转载或相同记录，报告未执行跨产品去重。",
     }
 
 
@@ -311,8 +411,9 @@ def build_core_analysis(
 
     # 企业资讯统计 KV（from monitor statistics view）
     stats_kv: Dict[str, Any] = {}
-    s = monitor_stats if isinstance(monitor_stats, dict) and not _is_error(monitor_stats) else {}
-    sentiment_stats = s.get("newsSentimentStats") if isinstance(s.get("newsSentimentStats"), dict) else {}
+    s: Mapping[str, Any] = monitor_stats if isinstance(monitor_stats, dict) and not _is_error(monitor_stats) else {}
+    raw_sentiment_stats = s.get("newsSentimentStats")
+    sentiment_stats: Mapping[str, Any] = raw_sentiment_stats if isinstance(raw_sentiment_stats, dict) else {}
     label_map = {"positive": "正面", "negative": "负面", "neutral": "中性", "unknown": "未知"}
     for key in ("positive", "negative", "neutral", "unknown"):
         val = sentiment_stats.get(key)
@@ -326,10 +427,12 @@ def build_core_analysis(
     if isinstance(news_trend, dict):
         months = news_trend.get("month")
         if isinstance(months, list):
-            stats_dict = news_trend.get("stats") if isinstance(news_trend.get("stats"), list) else []
+            raw_stats_list = news_trend.get("stats")
+            stats_dict: List[Any] = raw_stats_list if isinstance(raw_stats_list, list) else []
             for idx, m in enumerate(months):
                 row = {"周期/月份": _text(m)}
-                stats_item = stats_dict[idx] if idx < len(stats_dict) else {}
+                raw_stats_item = stats_dict[idx] if idx < len(stats_dict) else {}
+                stats_item: Mapping[str, Any] = raw_stats_item if isinstance(raw_stats_item, dict) else {}
                 if isinstance(stats_item, dict):
                     for k, lbl in (("negative", "负面"), ("positive", "正面"), ("neutral", "中性")):
                         if stats_item.get(k) is not None:
@@ -339,7 +442,8 @@ def build_core_analysis(
         for ti in news_trend:
             if isinstance(ti, dict):
                 row = {"周期/月份": _text(ti.get("month"))}
-                stats_item = ti.get("stats") if isinstance(ti.get("stats"), dict) else {}
+                raw_stats_item = ti.get("stats")
+                stats_item = raw_stats_item if isinstance(raw_stats_item, dict) else {}
                 for k, lbl in (("negative", "负面"), ("positive", "正面"), ("neutral", "中性")):
                     if stats_item.get(k) is not None:
                         row[lbl] = _text(stats_item.get(k))
@@ -365,16 +469,16 @@ def build_core_analysis(
          "chart": {"x": "周期/月份", "series": ["负面", "正面", "中性"], "area": False},
          "columns": [("周期/月份", "周期/月份"), ("负面", "负面"), ("正面", "正面"), ("中性", "中性")]},
         {"key": "company_news", "title": "企业资讯明细", "kind": "table",
-         "note": f"命中 {company_total if company_total is not None else '若干'} 条" + (f"；sentimentLabel={opts.get('sentiment')}" if opts.get("sentiment") else ""),
+         "note": f"命中 {company_total if company_total is not None else '未返回总数'} 条" + (f"；sentimentLabel={opts.get('sentiment')}" if opts.get("sentiment") is not None else ""),
          "columns": [("标题", "标题"), ("来源", "来源"), ("发布时间", "发布时间"), ("情感", "情感"), ("链接", "链接"), ("简介", "简介")]},
         {"key": "related_enterprises", "title": "关联共现企业", "kind": "table",
          "note": "企业资讯中高频共现的关联实体（来源：relatedEnterprises，已排除自身）",
          "columns": [("企业名称", "企业名称"), ("类型", "类型"), ("共现次数", "共现次数")]},
         {"key": "industry_news", "title": "全文检索资讯", "kind": "table",
-         "note": f"命中 {industry_total if industry_total is not None else '若干'} 条（information_search 全文检索）",
+         "note": f"命中 {industry_total if industry_total is not None else '未返回总数'} 条（information_search 全文检索）",
          "columns": [("标题", "标题"), ("来源", "来源"), ("发布时间", "发布时间"), ("情感", "情感"), ("链接", "链接"), ("简介", "简介")]},
         {"key": "topic_news", "title": "资讯主题跟踪", "kind": "table",
-         "note": f"命中 {topic_total if topic_total is not None else '若干'} 条",
+         "note": f"命中 {topic_total if topic_total is not None else '未返回总数'} 条（与全文检索同源同参，复用同一批已付费数据）",
          "columns": [("标题", "标题"), ("来源", "来源"), ("发布时间", "发布时间"), ("情感", "情感"), ("链接", "链接"), ("简介", "简介")]},
     ]
 
@@ -436,7 +540,7 @@ def _sentiment_ratio(stats_kv: Mapping[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _trend_series_analysis(rows: List[Mapping[str, Any]], value_key: str) -> Dict[str, Any]:
+def _trend_series_analysis(rows: Sequence[Mapping[str, Any]], value_key: str) -> Dict[str, Any]:
     """Direction/peak/YoY for a single sentiment series across months."""
     nums = []
     for r in rows:
@@ -463,7 +567,7 @@ def _trend_series_analysis(rows: List[Mapping[str, Any]], value_key: str) -> Dic
     return {"peak_period": rows[peak_idx].get("周期/月份", "-"), "peak_value": nums[peak_idx], "direction": direction, "yoy": yoy, "last": nums[-1]}
 
 
-def build_insights(subject: Mapping[str, Any], core: Mapping[str, Any], metrics: List[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+def build_insights(subject: Mapping[str, Any], core: Mapping[str, Any], metrics: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
     insights: List[Dict[str, Any]] = []
     metric_map = {m["label"]: str(m["value"]) for m in metrics}
     stats_kv = core.get("company_news_statistics") or {}
@@ -474,17 +578,16 @@ def build_insights(subject: Mapping[str, Any], core: Mapping[str, Any], metrics:
         insights.append({
             "feature": "资讯曝光度",
             "evidence": f"企业资讯命中 {metric_map.get('企业资讯数')} 条。",
-            "interpretation": "资讯总量反映企业的媒体曝光与公众关注度，是品牌声量与舆情监测的基础指标。",
+            "interpretation": "资讯命中量仅描述检索口径内的样本数量，不直接代表品牌影响力或公众关注度。",
         })
 
     # 2. 情感结构（正/负占比 + 净情感）
     sr = _sentiment_ratio(stats_kv)
     if sr:
-        health = "健康" if sr["neg_share"] < 15 else ("需关注" if sr["neg_share"] < 30 else "风险偏高")
         insights.append({
             "feature": "情感结构与净声量",
             "evidence": f"正面 {int(sr['pos'])}（{sr['pos_share']:.0f}%）、负面 {int(sr['neg'])}（{sr['neg_share']:.0f}%）、中性 {int(sr['neu'])}；净情感 {sr['net_ratio']:+.0f}%。",
-            "interpretation": f"负面占比 {sr['neg_share']:.0f}%，舆情整体{health}；净情感为正说明正向声量主导，负面偏高时建议核查明细并启动预警。",
+            "interpretation": "情感比例是算法分类结果，应结合原文抽样核验；不能据此直接判定企业声誉健康或风险等级。",
         })
 
     # 3. 资讯体量趋势（按月汇总正面+负面+中性 → 总声量趋势）
@@ -513,23 +616,16 @@ def build_insights(subject: Mapping[str, Any], core: Mapping[str, Any], metrics:
             insights.append({
                 "feature": "负面舆情走向",
                 "evidence": f"负面峰值出现在“{nta['peak_period']}”（{nta['peak_value']:.0f} 条），近月{nta['direction']}。",
-                "interpretation": "负面声量上升需重点排查（产品质量/合规/公关事件）；下降说明应对有效或事件平息。",
+                "interpretation": "负面声量变化仅描述样本数量；下降原因无法由数量判断，仍需核验事件、时间窗口与转载去重。",
             })
 
-    # 5. 行业语境对比（企业声量 vs 行业声量）
+    # 企业资讯与全文检索使用不同产品、查询范围和时间口径，禁止相除派生份额。
     if metric_map.get("行业资讯数") and metric_map.get("企业资讯数"):
-        try:
-            ent_n = float(metric_map["企业资讯数"])
-            ind_n = float(metric_map["行业资讯数"])
-            if ind_n > 0:
-                share = ent_n / ind_n * 100
-                insights.append({
-                    "feature": "行业语境对比",
-                    "evidence": f"行业资讯命中 {metric_map['行业资讯数']} 条，企业资讯占行业声量约 {share:.1f}%。",
-                    "interpretation": "企业声量份额反映其在行业中的话语权；份额偏低可结合公关投放与媒体合作提升曝光。",
-                })
-        except (TypeError, ValueError):
-            pass
+        insights.append({
+            "feature": "检索口径说明",
+            "evidence": f"企业资讯产品命中 {metric_map['企业资讯数']} 条；独立全文检索命中 {metric_map['行业资讯数']} 条。",
+            "interpretation": "两者来自不同产品与查询口径，仅并列披露，不计算行业份额、增长率或覆盖比例。",
+        })
 
     # 6. 关联共现企业（资讯中高频同现的实体）
     related_rows = core.get("related_enterprises") or []
@@ -540,7 +636,14 @@ def build_insights(subject: Mapping[str, Any], core: Mapping[str, Any], metrics:
         insights.append({
             "feature": "关联共现企业",
             "evidence": f"共现实体 {len(related_rows)} 个，Top3：{names}（合计共现 {int(total_co)} 次）。",
-            "interpretation": "高频共现企业反映与目标主体在同一新闻事件中反复出现的合作伙伴、竞争对手或上下游；集中度高通常意味着紧密的产业关联或事件相关性。",
+            "interpretation": "共现仅表示实体出现在同一资讯样本中，不能据此认定合作、竞争或上下游关系。",
+        })
+
+    if any(core.get(key) for key in ("company_news", "industry_news", "topic_news")):
+        insights.append({
+            "feature": "事件计数与跨产品重叠限制",
+            "evidence": "全文检索、主题跟踪与企业资讯按各自产品口径返回记录，可能包含同题转载或跨产品相同记录。",
+            "interpretation": "记录数不等于独立事件数，跨产品数量不可相加；报告未执行跨产品或事件级去重。",
         })
 
     if not insights:
@@ -559,13 +662,27 @@ def _to_float(value: Any) -> float:
         return 0.0
 
 
-def build_abstract(subject: Mapping[str, Any], core: Mapping[str, Any], metrics: List[Mapping[str, Any]]) -> str:
+def build_abstract(subject: Mapping[str, Any], core: Mapping[str, Any], metrics: Sequence[Mapping[str, Any]]) -> str:
     name = subject.get("enterprise") or subject.get("match_raw") or "目标对象"
-    parts = [f"本报告以“{name}”为分析对象，基于公开新闻资讯，系统呈现企业资讯明细、企业资讯情感统计、行业资讯与资讯主题跟踪。"]
+    section_labels = {
+        "company_news_statistics": "企业资讯情感统计",
+        "sentiment_dist": "资讯情感分布",
+        "sentiment_trend": "资讯情感趋势",
+        "company_news": "企业资讯明细",
+        "related_enterprises": "关联实体共现",
+        "industry_news": "全文检索资讯",
+        "topic_news": "主题跟踪资讯",
+    }
+    populated = [label for key, label in section_labels.items() if _has_evidence(core.get(key))]
+    coverage = "、".join(populated) if populated else "无有效章节"
+    if subject.get("subject_type") == "topic":
+        parts = [f"本报告以“{name}”为主题检索对象。本次有效数据仅覆盖：{coverage}；未返回有效企业资讯明细或企业情感统计时，不生成企业主体结论。"]
+    else:
+        parts = [f"本报告以“{name}”为企业查询对象。本次有效数据覆盖：{coverage}。"]
     if metrics:
         kv = "、".join(f"{m['label']} {m['value']}" for m in metrics[:5])
         parts.append(f"关键指标包括：{kv}。")
-    parts.append("报告同时给出资讯曝光度、情感结构与行业语境的结构化解读，便于品牌公关、舆情监测与市场决策参考。")
+    parts.append("各产品记录按自身口径披露，记录数不等于独立事件数，跨产品数量不可相加。")
     return "".join(parts)
 
 
@@ -597,7 +714,7 @@ def build_dry_run_payload(raw: str, keyword_type: str, opts: Mapping[str, Any]) 
 # Assembly
 # --------------------------------------------------------------------------- #
 
-def _assemble(subject: Mapping[str, Any], core: Mapping[str, Any], metrics: List[Mapping[str, Any]], *, dry_run: bool, opts: Mapping[str, Any]) -> Dict[str, Any]:
+def _assemble(subject: Mapping[str, Any], core: Mapping[str, Any], metrics: Sequence[Mapping[str, Any]], *, dry_run: bool, opts: Mapping[str, Any]) -> Dict[str, Any]:
     abstract = build_abstract(subject, core, metrics)
     records = build_records(core)
     insights = build_insights(subject, core, metrics)
@@ -606,10 +723,10 @@ def _assemble(subject: Mapping[str, Any], core: Mapping[str, Any], metrics: List
     secs = ca.get("sections", [])
     if secs:
         total_secs = len(secs)
-        populated = sum(1 for s in secs if isinstance(s, dict) and ca.get(s.get("key")) not in (None, "", [], {}))
+        populated = sum(1 for s in secs if isinstance(s, dict) and _has_evidence(ca.get(s.get("key"))))
     else:
         total_secs = max(1, len([k for k in ca if k != "sections"]))
-        populated = sum(1 for k in ca if k != "sections" and ca.get(k) not in (None, "", [], {}))
+        populated = sum(1 for k in ca if k != "sections" and _has_evidence(ca.get(k)))
     quality_report = {
         "total_sections": total_secs,
         "populated_sections": populated,
@@ -619,6 +736,8 @@ def _assemble(subject: Mapping[str, Any], core: Mapping[str, Any], metrics: List
     if populated == 0:
         import sys
         print("⚠️ 质量门禁警告: 所有核心分析维度均无数据", file=sys.stderr)
+        target = subject.get("enterprise") or subject.get("match_raw") or "目标对象"
+        abstract = f"本次对“{target}”的查询未获得有效数据；报告不据此生成资讯规模、情感或行业比较结论。请检查主体/主题、筛选条件及上游调用状态。"
     title = f"{subject.get('enterprise') or '目标对象'} 资讯大数据报告"
     return {
         "report_type": REPORT_TYPE,
@@ -635,11 +754,7 @@ def _assemble(subject: Mapping[str, Any], core: Mapping[str, Any], metrics: List
         "insights": insights,
         "data_source": {
             "mcp_server": "information-mcp-server",
-            "products": [
-                {"name": "资讯全文检索", "product_id": "6a60928a935bb6a5c6bbd68f"},
-                {"name": "企业资讯查询", "product_id": "66b485eadaf8c77fb249a455"},
-                {"name": "企业资讯监控", "product_id": "66b338e274bf098447db7efd"},
-            ],
+            "products": requested_products(subject),
             "generated_at": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
             "dry_run": dry_run,
             "quality_report": quality_report,
@@ -648,7 +763,7 @@ def _assemble(subject: Mapping[str, Any], core: Mapping[str, Any], metrics: List
 
 
 def _search_args_for(keyword: str, opts: Mapping[str, Any], page_size: int) -> Dict[str, Any]:
-    args: Dict[str, Any] = {"matchKeyword": keyword, "pageIndex": 1, "pageSize": page_size}
+    args: Dict[str, Any] = {"matchKeyword": keyword, "pageSize": page_size}
     if opts.get("pub_start"):
         args["pubDateBegin"] = opts.get("pub_start")
     if opts.get("pub_end"):
@@ -656,7 +771,10 @@ def _search_args_for(keyword: str, opts: Mapping[str, Any], page_size: int) -> D
     return args
 
 
-def build_payload(raw: str, keyword_type: str, opts: Mapping[str, Any]) -> Dict[str, Any]:
+@paid_call_scope
+def build_payload(raw: str, keyword_type: str, opts: Mapping[str, Any], max_pages: int = 1) -> Dict[str, Any]:
+    if isinstance(max_pages, bool) or not isinstance(max_pages, int) or max_pages < 1:
+        raise ValueError("max_pages 必须为正整数")
     resolved = resolve_enterprise_name(raw)
     enterprise = resolved["enterprise"]
     page_size = opts.get("page_size") or 50
@@ -665,12 +783,15 @@ def build_payload(raw: str, keyword_type: str, opts: Mapping[str, Any]) -> Dict[
     company_args: Dict[str, Any] = {
         "matchKeyword": enterprise,
         "keywordType": keyword_type,
-        "pageIndex": 1,
         "pageSize": page_size,
     }
-    if opts.get("sentiment"):
+    if opts.get("sentiment") is not None:
         company_args["sentimentLabel"] = opts.get("sentiment")
-    company_news = _safe_call(T_COMPANY_NEWS, company_args)
+    company_news = collect_detail_pages(
+        _safe_call, T_COMPANY_NEWS, company_args,
+        get_rows=_first_list, get_total=_safe_total, is_error=_is_api_error,
+        max_pages=max_pages,
+    ) if enterprise else {"text": "查询数据为空"}
     company_total = _safe_total(company_news) if isinstance(company_news, dict) else None
 
     # 2. 企业资讯监控统计视图（matchKeyword=企业名称）
@@ -680,18 +801,31 @@ def build_payload(raw: str, keyword_type: str, opts: Mapping[str, Any]) -> Dict[
         "view": "statistics",
         "keywordType": keyword_type,
     }
-    monitor_stats = _safe_call(T_MONITOR, monitor_args)
+    monitor_stats = _safe_call(T_MONITOR, monitor_args) if enterprise else {"text": "查询数据为空"}
 
     # 3. 全文检索资讯（matchKeyword=关键词；同 raw）
     # NOTE: information_industry_news is a DEAD product (returns {error:"产品不存在",code:"11014"}).
     # Use information_search instead — same args, returns resultList with title/source/time/link.
     industry_args = _search_args_for(raw, opts, page_size)
-    industry_news = _safe_call(T_SEARCH, industry_args)
+    industry_news = collect_detail_pages(
+        _safe_call, T_SEARCH, industry_args,
+        get_rows=_first_list, get_total=_safe_total, is_error=_is_api_error,
+        max_pages=max_pages,
+    )
     industry_total = _safe_total(industry_news) if isinstance(industry_news, dict) else None
 
     # 4. 资讯主题跟踪（matchKeyword=关键词）
+    # information_topic 与 information_search 复用同一上游产品（6a60928a935bb6a5c6bbd68f）
+    # 且参数完全一致（matchKeyword/pubDate/pageIndex/pageSize）→ 复用已付费检索结果，不重复计费。
     topic_args = _search_args_for(raw, opts, page_size)
-    topic_news = _safe_call(T_TOPIC, topic_args)
+    if topic_args == industry_args:
+        topic_news = industry_news
+    else:
+        topic_news = collect_detail_pages(
+            _safe_call, T_TOPIC, topic_args,
+            get_rows=_first_list, get_total=_safe_total, is_error=_is_api_error,
+            max_pages=max_pages,
+        )
     topic_total = _safe_total(topic_news) if isinstance(topic_news, dict) else None
 
     subject = build_subject(raw, resolved, keyword_type, opts)
@@ -700,7 +834,9 @@ def build_payload(raw: str, keyword_type: str, opts: Mapping[str, Any]) -> Dict[
     metrics = build_metrics(company_total, industry_total, topic_total, monitor_stats)
     _derive_core_metrics(metrics, core if isinstance(core, dict) else {})
     opts_full = {**opts, "view": monitor_view}
-    return _assemble(subject, core, metrics, dry_run=False, opts=opts_full)
+    report = _assemble(subject, core, metrics, dry_run=False, opts=opts_full)
+    report = _attach_call_status(report, {"企业资讯": company_news, "企业资讯监控": monitor_stats, "资讯全文检索": industry_news, "资讯主题跟踪": topic_news})
+    return attach_pagination(report, {"企业资讯": company_news, "资讯全文检索": industry_news, "资讯主题跟踪": topic_news})
 
 
 # --------------------------------------------------------------------------- #
@@ -716,6 +852,7 @@ def main() -> None:
     parser.add_argument("--sentiment", default=None, choices=["0", "1", "2", "3"], help="企业资讯情感过滤：0=负面/1=正面/2=中性/3=未知")
     parser.add_argument("--view", default=None, choices=["details", "statistics"], help="企业资讯监控视图：details=明细/statistics=统计（默认）")
     parser.add_argument("--page-size", type=int, default=None, help="分页大小（最多 50）")
+    parser.add_argument("--max-pages", type=int, default=1, help="各资讯明细接口最多付费翻页数（默认 1；仅在明确需要更多结论/证据时增大）")
     parser.add_argument("--dry-run", action="store_true", help="不调用真实 MCP，使用样例数据组装报告骨架")
     parser.add_argument("--output", help="输出 JSON 路径；省略则打印到 stdout")
     parser.add_argument("--report-output", help="同时输出 HTML 报告（.html）与 Markdown 报告（.md）")
@@ -730,10 +867,14 @@ def main() -> None:
         "page_size": args.page_size,
     }
 
+    if not args.dry_run:
+        if args.max_pages is not None and args.max_pages < 1:
+            die("--max-pages 必须为正整数")
+
     if args.dry_run:
         payload = build_dry_run_payload(args.enterprise, args.keyword_type, opts)
     else:
-        payload = build_payload(args.enterprise, args.keyword_type, opts)
+        payload = build_payload(args.enterprise, args.keyword_type, opts, args.max_pages)
 
     if args.output:
         out = pathlib.Path(args.output).expanduser()
