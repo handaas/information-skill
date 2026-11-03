@@ -17,7 +17,7 @@
         "business-review.json": "8ae1f2c2bfaeea3a72f2e2a16ed21608f86a5ad90efa2dfcbc2a78d70aab12c3",
         "browser-check.json": "095aa4e047005d7f9795d4419692066fe52458dc5f83d23a27dbcbb8fb3d9ea9"
       },
-      "audit_record": "../../test-records/live-replaced-20261027/01-company-monitor.md"
+      "audit_record": "../test-records/live-replaced-20261027/01-company-monitor.md"
     },
     {
       "skill": "information-skill",
@@ -35,7 +35,7 @@
         "business-review.json": "a0abdbebe2596644351a94abba0283d222311c1dd0fe93c5d487edc46e423867",
         "browser-check.json": "40ce4f25249243008da678571227d6c6a912c5b69fadda67ac16334f32e3124d"
       },
-      "audit_record": "../../test-records/live-replaced-20261027/02-negative-company.md"
+      "audit_record": "../test-records/live-replaced-20261027/02-negative-company.md"
     },
     {
       "skill": "information-skill",
@@ -53,7 +53,7 @@
         "business-review.json": "72440bdbac75b29d838ee2e4e28455064002d9f60f961d4744fcb63deecb276d",
         "browser-check.json": "b79b5829957fb92b2af2ee1652fb8aadc30b5f1245bddc75c5865bf31e0226c2"
       },
-      "audit_record": "../../test-records/live-replaced-20261027/06-positive-company.md"
+      "audit_record": "../test-records/live-replaced-20261027/06-positive-company.md"
     },
     {
       "skill": "information-skill",
@@ -71,7 +71,7 @@
         "business-review.json": "4b1e44b57555ae51eb86d44fa6475771cd50baf34f60903ad47b83f22facce4d",
         "browser-check.json": "60037776471e1f2f83205c3ecd996c4afb6b68485d680f8582818efbf22ab475"
       },
-      "audit_record": "../../test-records/live-replaced-20261027/07-compact-information.md"
+      "audit_record": "../test-records/live-replaced-20261027/07-compact-information.md"
     }
   ]
 }
