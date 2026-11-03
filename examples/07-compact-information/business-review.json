@@ -1,0 +1,31 @@
+{
+  "id": "07-compact-information",
+  "verdict": "acceptable",
+  "summary": "已逐项读取 targeted-fix 后当前 JSON/HTML/Markdown/calls/result，并核对实际工具、Product ID 与报告来源范围。",
+  "checks": [
+    {
+      "expectation": "每类明细最多 5 条或实际返回数",
+      "status": "pass",
+      "evidence": "company_news当前页5条，search/topic各2条，均不超过pageSize=5或实际返回。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 5, 1859), ('information_monitor', 'data', None, None), ('information_search', 'data', 2, 2), ('information_topic', 'data', 2, 2)]；subject={'enterprise': '腾讯科技（深圳）有限公司', 'subject_type': 'enterprise', 'matchKeyword': '腾讯科技（深圳）有限公司', 'keywordType': 'name', 'match_raw': '腾讯科技（深圳）有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '', 'monitor_view': 'details'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 5, 'related_enterprises': 15, 'industry_news': 2, 'topic_news': 2}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+    },
+    {
+      "expectation": "总量和当前页样本不得混淆",
+      "status": "pass",
+      "evidence": "企业资讯总量1859与当前页5条分开，全文/主题各自总量2也独立。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 5, 1859), ('information_monitor', 'data', None, None), ('information_search', 'data', 2, 2), ('information_topic', 'data', 2, 2)]；subject={'enterprise': '腾讯科技（深圳）有限公司', 'subject_type': 'enterprise', 'matchKeyword': '腾讯科技（深圳）有限公司', 'keywordType': 'name', 'match_raw': '腾讯科技（深圳）有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '', 'monitor_view': 'details'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 5, 'related_enterprises': 15, 'industry_news': 2, 'topic_news': 2}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+    },
+    {
+      "expectation": "HTML、Markdown、JSON 的标题与来源一致",
+      "status": "pass",
+      "evidence": "独立重渲染通过，三种格式基于同一记录标题与来源。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 5, 1859), ('information_monitor', 'data', None, None), ('information_search', 'data', 2, 2), ('information_topic', 'data', 2, 2)]；subject={'enterprise': '腾讯科技（深圳）有限公司', 'subject_type': 'enterprise', 'matchKeyword': '腾讯科技（深圳）有限公司', 'keywordType': 'name', 'match_raw': '腾讯科技（深圳）有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '', 'monitor_view': 'details'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 5, 'related_enterprises': 15, 'industry_news': 2, 'topic_news': 2}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+    }
+  ],
+  "issues": [],
+  "evidence_binding": {
+    "report.json": "184f75439154df5555db608514f71965f4e7e514ce1910bcacca1d93b024fac4",
+    "report.html": "049acf82f8fe311d17c73e5953a0e66f1985eff9ee641e1675f809bf0a2ebda0",
+    "report.md": "f384faef9319932fff1124e0895bdd591c199c6f68aea0d73c5f9a5c6897131e",
+    "calls.json": "e62b9c8debb7a06d225ca3276bca7c8b5340623518ec81713657a5942f886f78",
+    "result.json": "1ed01e9f7147d95ffd95b58f096395eb255e2bdae7b8e3faa0bcf40eec6206f0",
+    "source_manifest_sha256": "014e0c39ccd221d4b037bfafc75dc705b73521da54c003be18fa8ca62d4dab92"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "metric_overflows": [],
+  "document_title": "华为技术有限公司 资讯大数据报告",
+  "title_matches": true,
+  "charts": 2,
+  "rendered_charts": 2,
+  "zero_size_charts": 0,
+  "chart_details": [
+    {
+      "width": 984,
+      "height": 300,
+      "instance": true,
+      "renderer": true,
+      "graphics": 25
+    },
+    {
+      "width": 984,
+      "height": 300,
+      "instance": true,
+      "renderer": true,
+      "graphics": 126
+    }
+  ],
+  "page_width": 1905,
+  "viewport_width": 1920,
+  "empty_headers": 0,
+  "script_errors": [],
+  "external_resources": 0,
+  "external_asset_references": 0,
+  "ok": true,
+  "report_html_sha256": "b1c2bc0f7bb0324c18ad13e77009288e3cb3d1ca380bc34fb71e1d695c3500af",
+  "report_json_sha256": "9bf6087e356de78a51c63ccf437cef7f9d04de4a4365a7951bdc379821505ce1",
+  "skill": "information-skill",
+  "id": "02-negative-company",
+  "browser": "Ego Lite",
+  "space_id": 4,
+  "offline": true,
+  "checked_at": "2026-10-27T03:03:25.552Z"
+}

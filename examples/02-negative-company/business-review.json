@@ -1,0 +1,31 @@
+{
+  "id": "02-negative-company",
+  "verdict": "acceptable",
+  "summary": "已逐项读取 targeted-fix 后当前 JSON/HTML/Markdown/calls/result，并核对实际工具、Product ID 与报告来源范围。",
+  "checks": [
+    {
+      "expectation": "企业资讯明细应按负面标签筛选",
+      "status": "pass",
+      "evidence": "company_news 请求 sentimentLabel=0；当前页记录按返回负面标签展示。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 10, 307), ('information_monitor', 'data', None, None), ('information_search', 'data', 10, 15), ('information_topic', 'data', 10, 15)]；subject={'enterprise': '华为技术有限公司', 'subject_type': 'enterprise', 'matchKeyword': '华为技术有限公司', 'keywordType': 'name', 'match_raw': '华为技术有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '0', 'monitor_view': 'details'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 10, 'related_enterprises': 3, 'industry_news': 10, 'topic_news': 10}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+    },
+    {
+      "expectation": "统计视图与明细过滤口径区别应写明",
+      "status": "pass",
+      "evidence": "统计视图四类总量与负面明细筛选分别披露，不混用。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 10, 307), ('information_monitor', 'data', None, None), ('information_search', 'data', 10, 15), ('information_topic', 'data', 10, 15)]；subject={'enterprise': '华为技术有限公司', 'subject_type': 'enterprise', 'matchKeyword': '华为技术有限公司', 'keywordType': 'name', 'match_raw': '华为技术有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '0', 'monitor_view': 'details'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 10, 'related_enterprises': 3, 'industry_news': 10, 'topic_news': 10}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+    },
+    {
+      "expectation": "不得将负面标签当作事实认定",
+      "status": "pass",
+      "evidence": "报告明确负面标签不能替代对原文事实的核验，下降也不代表应对有效。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 10, 307), ('information_monitor', 'data', None, None), ('information_search', 'data', 10, 15), ('information_topic', 'data', 10, 15)]；subject={'enterprise': '华为技术有限公司', 'subject_type': 'enterprise', 'matchKeyword': '华为技术有限公司', 'keywordType': 'name', 'match_raw': '华为技术有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '0', 'monitor_view': 'details'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 10, 'related_enterprises': 3, 'industry_news': 10, 'topic_news': 10}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+    }
+  ],
+  "issues": [],
+  "evidence_binding": {
+    "report.json": "9bf6087e356de78a51c63ccf437cef7f9d04de4a4365a7951bdc379821505ce1",
+    "report.html": "b1c2bc0f7bb0324c18ad13e77009288e3cb3d1ca380bc34fb71e1d695c3500af",
+    "report.md": "7de2359317f5565644f1a780013384d7abdffd96f9ddb2558c0ba1ede2c7f7af",
+    "calls.json": "221b74ade349865efdf056e06273c84829ec2773cf4434af1e94795dcda27eea",
+    "result.json": "4b0d61bf2016bad291ca107aeaf2a46d7abbaf3ef1c26ad0ba5a0079e8e8a29d",
+    "source_manifest_sha256": "014e0c39ccd221d4b037bfafc75dc705b73521da54c003be18fa8ca62d4dab92"
+  }
+}

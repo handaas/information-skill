@@ -1,0 +1,36 @@
+{
+  "id": "01-company-monitor",
+  "verdict": "acceptable",
+  "summary": "已逐项读取 targeted-fix 后当前 JSON/HTML/Markdown/calls/result，并核对实际工具、Product ID 与报告来源范围。",
+  "checks": [
+    {
+      "expectation": "企业资讯与主题/全文检索结果分章节",
+      "status": "pass",
+      "evidence": "company_news、information_search、information_topic 分别映射企业明细/全文检索/主题章节。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 10, 5131), ('information_monitor', 'data', None, None), ('information_search', 'data', 10, 13), ('information_topic', 'data', 10, 13)]；subject={'enterprise': '比亚迪股份有限公司', 'subject_type': 'enterprise', 'matchKeyword': '比亚迪股份有限公司', 'keywordType': 'name', 'match_raw': '比亚迪股份有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '', 'monitor_view': 'statistics'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 10, 'related_enterprises': 5, 'industry_news': 10, 'topic_news': 10}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+    },
+    {
+      "expectation": "情感统计按四类呈现",
+      "status": "pass",
+      "evidence": "统计分列正面1540、负面156、中性3402、未知33。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 10, 5131), ('information_monitor', 'data', None, None), ('information_search', 'data', 10, 13), ('information_topic', 'data', 10, 13)]；subject={'enterprise': '比亚迪股份有限公司', 'subject_type': 'enterprise', 'matchKeyword': '比亚迪股份有限公司', 'keywordType': 'name', 'match_raw': '比亚迪股份有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '', 'monitor_view': 'statistics'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 10, 'related_enterprises': 5, 'industry_news': 10, 'topic_news': 10}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+    },
+    {
+      "expectation": "资讯标题、来源、时间与链接按源数据保留",
+      "status": "pass",
+      "evidence": "明细保留标题、来源、发布时间、链接。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 10, 5131), ('information_monitor', 'data', None, None), ('information_search', 'data', 10, 13), ('information_topic', 'data', 10, 13)]；subject={'enterprise': '比亚迪股份有限公司', 'subject_type': 'enterprise', 'matchKeyword': '比亚迪股份有限公司', 'keywordType': 'name', 'match_raw': '比亚迪股份有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '', 'monitor_view': 'statistics'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 10, 'related_enterprises': 5, 'industry_news': 10, 'topic_news': 10}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+    },
+    {
+      "expectation": "企业名称查询与主题词查询口径应说明",
+      "status": "pass",
+      "evidence": "caliber 区分企业主体查询与全文/主题产品，并声明跨产品数量不可相加。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 10, 5131), ('information_monitor', 'data', None, None), ('information_search', 'data', 10, 13), ('information_topic', 'data', 10, 13)]；subject={'enterprise': '比亚迪股份有限公司', 'subject_type': 'enterprise', 'matchKeyword': '比亚迪股份有限公司', 'keywordType': 'name', 'match_raw': '比亚迪股份有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '', 'monitor_view': 'statistics'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 10, 'related_enterprises': 5, 'industry_news': 10, 'topic_news': 10}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+    }
+  ],
+  "issues": [],
+  "evidence_binding": {
+    "report.json": "ea4e4e98e90687fe3ecef4ac9a4c8332139a878cd313d8524c386a56b50daf04",
+    "report.html": "dc044c4cb8ac01616badb39ab6e0abc13ecb413ab4a06990d1ff7efc6b70e118",
+    "report.md": "a53fd3eecef77343bbd959ddb17b61c9796d1b499c6223ea04bac4910544dbe6",
+    "calls.json": "d922fd861184b54c7377682335a7d3942af7254e1d658ef4aeaf335fb84a2f0c",
+    "result.json": "8178f9f961fc78e1ba194e23387d69ca5dda8e87a8f85194c3407347a6e4ce57",
+    "source_manifest_sha256": "014e0c39ccd221d4b037bfafc75dc705b73521da54c003be18fa8ca62d4dab92"
+  }
+}

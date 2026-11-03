@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "skill": "information-skill",
+  "case_id": "01-company-monitor",
+  "title": "企业资讯监控",
+  "invocation_id": "1793070061543822000",
+  "provenance": {
+    "integrator_id": "683e574805537ace146cc05e",
+    "runner_sha256": "05777c2f2b0791cb5157aef691206606dade8df7af3b17212285b7ae74632a66",
+    "credential_policy_sha256": "bcabf08a1ca92f28357c0e57a8bae9bfa910eb1d4b204d8195ee3b7a77106eed",
+    "scenario_sha256": "1e0f3725e35db7e70672c462e587e71935eee394d218c25418276834404e8b48",
+    "skill_source_hashes": {
+      "scripts/common.py": "9c17da7f00f1d5ea39f9cb29be502ef6b65fb50c4b97e735f3dbf61aa4b4b02d",
+      "scripts/compose_report.py": "5e1d262311f5869150f6a9488102b760e36aa5817d602704b575adafb45501a2",
+      "scripts/mcp_client.py": "3825dbbdac8f04c452d89f1b9668cdfd1aae8dea41d84edf8dd2a1ffa3b57dd0",
+      "scripts/render_report.py": "44702838647f595a3bd03ab0fa5eef465e298064f94461cfb9f4404d451adf76",
+      "scripts/validate_config.py": "3239f28b753d7fe5edc3d2bb2c9ec2d787ac07efbc692dc46c2b7d3dc2cb2e4c"
+    },
+    "upstream_source_hashes": {
+      "information-mcp-server": "5ee923aef64f98233ed666a441d8c6ca60eb93fc0182d99ea9063a770adfa054"
+    },
+    "upstream_dependency_hashes": {
+      "information-mcp-server/server/mcp_server.py": "5ee923aef64f98233ed666a441d8c6ca60eb93fc0182d99ea9063a770adfa054"
+    }
+  },
+  "source_changed_during_run": false,
+  "started_at": "2026-10-27T11:01:01+08:00",
+  "elapsed_seconds": 5.356,
+  "returncode": 0,
+  "exception_type": null,
+  "command": "python3 information-skill/scripts/compose_report.py --enterprise '比亚迪股份有限公司' --view statistics --page-size 10 --output information-skill/output/live-replaced-20261027/01-company-monitor/report.json --report-output information-skill/output/live-replaced-20261027/01-company-monitor/report.html",
+  "transport": "local MCP servers via loopback streamable-http",
+  "cache_used": false,
+  "call_count": 4,
+  "successful_data_calls": 4,
+  "empty_calls": 0,
+  "failed_calls": 0,
+  "checks": {
+    "issues": [],
+    "warnings": [],
+    "coverage_pct": 100,
+    "subject": {
+      "enterprise": "比亚迪股份有限公司",
+      "subject_type": "enterprise",
+      "matchKeyword": "比亚迪股份有限公司",
+      "keywordType": "name",
+      "match_raw": "比亚迪股份有限公司",
+      "resolved": true,
+      "resolve_reason": "视为企业全称",
+      "pub_date_begin": "",
+      "pub_date_end": "",
+      "sentiment_label": "",
+      "monitor_view": "statistics"
+    },
+    "title": "比亚迪股份有限公司 资讯大数据报告",
+    "data_mode": null,
+    "metrics": [
+      {
+        "label": "企业资讯数",
+        "value": "5131",
+        "hint": "企业新闻舆情明细总数"
+      },
+      {
+        "label": "行业资讯数",
+        "value": "13",
+        "hint": "行业资讯命中数"
+      },
+      {
+        "label": "主题资讯数",
+        "value": "13",
+        "hint": "主题跟踪命中数"
+      },
+      {
+        "label": "正面资讯",
+        "value": "1540",
+        "hint": "正面情感资讯数",
+        "delta": "占比 30%"
+      },
+      {
+        "label": "负面资讯",
+        "value": "156",
+        "hint": "负面情感资讯数",
+        "delta": "占比 3%"
+      },
+      {
+        "label": "中性资讯",
+        "value": "3402",
+        "hint": "中性情感资讯数",
+        "delta": "占比 66%"
+      },
+      {
+        "label": "正面占比",
+        "value": "30.0%",
+        "hint": "正面资讯占总资讯比例"
+      },
+      {
+        "label": "舆情监控周期",
+        "value": "12",
+        "hint": "有情感数据的月份数"
+      },
+      {
+        "label": "资讯来源数",
+        "value": "6",
+        "hint": "不同媒体/来源数"
+      },
+      {
+        "label": "高频来源",
+        "value": "新浪财经（4篇）",
+        "hint": "报道最多的媒体来源"
+      }
+    ],
+    "quality_report": {
+      "total_sections": 7,
+      "populated_sections": 7,
+      "empty_sections": 0,
+      "coverage_pct": 100
+    },
+    "unregistered_tools": [],
+    "checks": {
+      "json_html_markdown": true,
+      "explicit_live": true,
+      "tool_calls_recorded": 4,
+      "offline_scripts": true,
+      "independent_rerender": true
+    }
+  },
+  "status": "passed",
+  "source_hashes": {
+    "scripts/common.py": "9c17da7f00f1d5ea39f9cb29be502ef6b65fb50c4b97e735f3dbf61aa4b4b02d",
+    "scripts/compose_report.py": "5e1d262311f5869150f6a9488102b760e36aa5817d602704b575adafb45501a2",
+    "scripts/mcp_client.py": "3825dbbdac8f04c452d89f1b9668cdfd1aae8dea41d84edf8dd2a1ffa3b57dd0",
+    "scripts/render_report.py": "44702838647f595a3bd03ab0fa5eef465e298064f94461cfb9f4404d451adf76",
+    "scripts/validate_config.py": "3239f28b753d7fe5edc3d2bb2c9ec2d787ac07efbc692dc46c2b7d3dc2cb2e4c"
+  }
+}

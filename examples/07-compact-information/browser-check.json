@@ -1,0 +1,39 @@
+{
+  "metric_overflows": [],
+  "document_title": "腾讯科技（深圳）有限公司 资讯大数据报告",
+  "title_matches": true,
+  "charts": 2,
+  "rendered_charts": 2,
+  "zero_size_charts": 0,
+  "chart_details": [
+    {
+      "width": 984,
+      "height": 300,
+      "instance": true,
+      "renderer": true,
+      "graphics": 25
+    },
+    {
+      "width": 984,
+      "height": 300,
+      "instance": true,
+      "renderer": true,
+      "graphics": 124
+    }
+  ],
+  "page_width": 1905,
+  "viewport_width": 1920,
+  "empty_headers": 0,
+  "script_errors": [],
+  "external_resources": 0,
+  "external_asset_references": 0,
+  "ok": true,
+  "report_html_sha256": "049acf82f8fe311d17c73e5953a0e66f1985eff9ee641e1675f809bf0a2ebda0",
+  "report_json_sha256": "184f75439154df5555db608514f71965f4e7e514ce1910bcacca1d93b024fac4",
+  "skill": "information-skill",
+  "id": "07-compact-information",
+  "browser": "Ego Lite",
+  "space_id": 4,
+  "offline": true,
+  "checked_at": "2026-10-27T03:03:29.141Z"
+}

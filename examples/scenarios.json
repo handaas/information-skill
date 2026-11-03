@@ -1,0 +1,109 @@
+{
+  "skill": "information-skill",
+  "kind": "verified_positive_examples",
+  "run_id": "live-replaced-20261027",
+  "source_manifest": "../test-records/scenarios-20261027.json",
+  "scenarios": [
+    {
+      "id": "01-company-monitor",
+      "title": "企业资讯监控",
+      "user_request": "跟踪比亚迪股份有限公司的企业资讯、情感统计、全文检索和主题资讯。",
+      "purpose": "建立企业动态监控报告。",
+      "args": [
+        "--enterprise",
+        "比亚迪股份有限公司",
+        "--view",
+        "statistics",
+        "--page-size",
+        "10"
+      ],
+      "expected_checks": [
+        "企业资讯与主题/全文检索结果分章节",
+        "情感统计按四类呈现",
+        "资讯标题、来源、时间与链接按源数据保留",
+        "企业名称查询与主题词查询口径应说明"
+      ],
+      "limitations": [
+        "仅反映本次 HandaaS 数据产品返回范围与生成时点，不等同于官方证明。",
+        "空结果必须保留为空，不能解释为该事项客观不存在。",
+        "资讯收录取决于数据源覆盖，不能视为全网完整监测。"
+      ]
+    },
+    {
+      "id": "02-negative-company",
+      "title": "企业负面资讯筛查",
+      "user_request": "筛选华为技术有限公司的负面企业资讯，并保留统计视图。",
+      "purpose": "提供需要人工阅读核实的负面信息线索。",
+      "args": [
+        "--enterprise",
+        "华为技术有限公司",
+        "--sentiment",
+        "0",
+        "--view",
+        "details",
+        "--page-size",
+        "10"
+      ],
+      "expected_checks": [
+        "企业资讯明细应按负面标签筛选",
+        "统计视图与明细过滤口径区别应写明",
+        "不得将负面标签当作事实认定"
+      ],
+      "limitations": [
+        "仅反映本次 HandaaS 数据产品返回范围与生成时点，不等同于官方证明。",
+        "空结果必须保留为空，不能解释为该事项客观不存在。",
+        "自动情感分类和转载内容都可能有误，必须核对原文。"
+      ]
+    },
+    {
+      "id": "06-positive-company",
+      "title": "企业正面资讯抽样",
+      "user_request": "查看贵州茅台酒股份有限公司的正面企业资讯样本。",
+      "purpose": "观察正面内容来源和主题构成。",
+      "args": [
+        "--enterprise",
+        "贵州茅台酒股份有限公司",
+        "--sentiment",
+        "1",
+        "--view",
+        "details",
+        "--page-size",
+        "8"
+      ],
+      "expected_checks": [
+        "企业明细按正面标签筛选",
+        "来源数量不等同于实际传播效果",
+        "情感统计与筛选明细口径需区分"
+      ],
+      "limitations": [
+        "仅反映本次 HandaaS 数据产品返回范围与生成时点，不等同于官方证明。",
+        "空结果必须保留为空，不能解释为该事项客观不存在。",
+        "正面标签不能证明内容真实或代表公众总体态度。"
+      ]
+    },
+    {
+      "id": "07-compact-information",
+      "title": "企业资讯快报",
+      "user_request": "为腾讯科技（深圳）有限公司生成前 5 条资讯的管理层快报。",
+      "purpose": "验证小分页、统计与三种格式的一致性。",
+      "args": [
+        "--enterprise",
+        "腾讯科技（深圳）有限公司",
+        "--view",
+        "details",
+        "--page-size",
+        "5"
+      ],
+      "expected_checks": [
+        "每类明细最多 5 条或实际返回数",
+        "总量和当前页样本不得混淆",
+        "HTML、Markdown、JSON 的标题与来源一致"
+      ],
+      "limitations": [
+        "仅反映本次 HandaaS 数据产品返回范围与生成时点，不等同于官方证明。",
+        "空结果必须保留为空，不能解释为该事项客观不存在。",
+        "快报不是全量资讯档案。"
+      ]
+    }
+  ]
+}

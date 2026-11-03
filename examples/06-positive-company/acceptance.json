@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "skill": "information-skill",
+  "case_id": "06-positive-company",
+  "title": "企业正面资讯抽样",
+  "invocation_id": "1793070066798364000",
+  "provenance": {
+    "integrator_id": "683e574805537ace146cc05e",
+    "runner_sha256": "05777c2f2b0791cb5157aef691206606dade8df7af3b17212285b7ae74632a66",
+    "credential_policy_sha256": "bcabf08a1ca92f28357c0e57a8bae9bfa910eb1d4b204d8195ee3b7a77106eed",
+    "scenario_sha256": "f6c17e2e719573444efd2c4cd5309f39ed6a3bbd9f0b52d02a62b0a8c62d120f",
+    "skill_source_hashes": {
+      "scripts/common.py": "9c17da7f00f1d5ea39f9cb29be502ef6b65fb50c4b97e735f3dbf61aa4b4b02d",
+      "scripts/compose_report.py": "5e1d262311f5869150f6a9488102b760e36aa5817d602704b575adafb45501a2",
+      "scripts/mcp_client.py": "3825dbbdac8f04c452d89f1b9668cdfd1aae8dea41d84edf8dd2a1ffa3b57dd0",
+      "scripts/render_report.py": "44702838647f595a3bd03ab0fa5eef465e298064f94461cfb9f4404d451adf76",
+      "scripts/validate_config.py": "3239f28b753d7fe5edc3d2bb2c9ec2d787ac07efbc692dc46c2b7d3dc2cb2e4c"
+    },
+    "upstream_source_hashes": {
+      "information-mcp-server": "5ee923aef64f98233ed666a441d8c6ca60eb93fc0182d99ea9063a770adfa054"
+    },
+    "upstream_dependency_hashes": {
+      "information-mcp-server/server/mcp_server.py": "5ee923aef64f98233ed666a441d8c6ca60eb93fc0182d99ea9063a770adfa054"
+    }
+  },
+  "source_changed_during_run": false,
+  "started_at": "2026-10-27T11:01:06+08:00",
+  "elapsed_seconds": 4.128,
+  "returncode": 0,
+  "exception_type": null,
+  "command": "python3 information-skill/scripts/compose_report.py --enterprise '贵州茅台酒股份有限公司' --sentiment 1 --view details --page-size 8 --output information-skill/output/live-replaced-20261027/06-positive-company/report.json --report-output information-skill/output/live-replaced-20261027/06-positive-company/report.html",
+  "transport": "local MCP servers via loopback streamable-http",
+  "cache_used": false,
+  "call_count": 4,
+  "successful_data_calls": 4,
+  "empty_calls": 0,
+  "failed_calls": 0,
+  "checks": {
+    "issues": [],
+    "warnings": [],
+    "coverage_pct": 100,
+    "subject": {
+      "enterprise": "贵州茅台酒股份有限公司",
+      "subject_type": "enterprise",
+      "matchKeyword": "贵州茅台酒股份有限公司",
+      "keywordType": "name",
+      "match_raw": "贵州茅台酒股份有限公司",
+      "resolved": true,
+      "resolve_reason": "视为企业全称",
+      "pub_date_begin": "",
+      "pub_date_end": "",
+      "sentiment_label": "1",
+      "monitor_view": "details"
+    },
+    "title": "贵州茅台酒股份有限公司 资讯大数据报告",
+    "data_mode": null,
+    "metrics": [
+      {
+        "label": "企业资讯数",
+        "value": "776",
+        "hint": "企业新闻舆情明细总数"
+      },
+      {
+        "label": "行业资讯数",
+        "value": "8",
+        "hint": "行业资讯命中数"
+      },
+      {
+        "label": "主题资讯数",
+        "value": "8",
+        "hint": "主题跟踪命中数"
+      },
+      {
+        "label": "正面资讯",
+        "value": "776",
+        "hint": "正面情感资讯数",
+        "delta": "占比 18%"
+      },
+      {
+        "label": "负面资讯",
+        "value": "632",
+        "hint": "负面情感资讯数",
+        "delta": "占比 15%"
+      },
+      {
+        "label": "中性资讯",
+        "value": "2851",
+        "hint": "中性情感资讯数",
+        "delta": "占比 67%"
+      },
+      {
+        "label": "正面占比",
+        "value": "18.1%",
+        "hint": "正面资讯占总资讯比例"
+      },
+      {
+        "label": "舆情监控周期",
+        "value": "12",
+        "hint": "有情感数据的月份数"
+      },
+      {
+        "label": "资讯来源数",
+        "value": "6",
+        "hint": "不同媒体/来源数"
+      },
+      {
+        "label": "高频来源",
+        "value": "证券之星（2篇）",
+        "hint": "报道最多的媒体来源"
+      }
+    ],
+    "quality_report": {
+      "total_sections": 7,
+      "populated_sections": 7,
+      "empty_sections": 0,
+      "coverage_pct": 100
+    },
+    "unregistered_tools": [],
+    "checks": {
+      "json_html_markdown": true,
+      "explicit_live": true,
+      "tool_calls_recorded": 4,
+      "offline_scripts": true,
+      "independent_rerender": true,
+      "offline_browser": true
+    }
+  },
+  "status": "passed",
+  "source_hashes": {
+    "scripts/common.py": "9c17da7f00f1d5ea39f9cb29be502ef6b65fb50c4b97e735f3dbf61aa4b4b02d",
+    "scripts/compose_report.py": "5e1d262311f5869150f6a9488102b760e36aa5817d602704b575adafb45501a2",
+    "scripts/mcp_client.py": "3825dbbdac8f04c452d89f1b9668cdfd1aae8dea41d84edf8dd2a1ffa3b57dd0",
+    "scripts/render_report.py": "44702838647f595a3bd03ab0fa5eef465e298064f94461cfb9f4404d451adf76",
+    "scripts/validate_config.py": "3239f28b753d7fe5edc3d2bb2c9ec2d787ac07efbc692dc46c2b7d3dc2cb2e4c"
+  },
+  "technical_status": "passed",
+  "audited_at": "2026-10-27T11:13:01+08:00",
+  "evidence_binding": {
+    "report.json": "236570ed01dce3b032994c3b5ab561da8de26d41ccff734085bb37c8046103cc",
+    "report.html": "caaabc06837450dfc2014196af2c9839ac01e580ab5539d1a595f6ff04f35f11",
+    "report.md": "5568349c90086678af663c99101f5e1c5f3509374588b26d9e1a1706693c7ab5",
+    "calls.json": "b951657575068e70c43a99f6df67224d742ef5c2b1dcbe64724c7f6bc93d3b71",
+    "result.json": "d790b71347923fd19ef1a23aa11692d2637fa9b30d13ace021484ad31569fbf8",
+    "source_manifest_sha256": "014e0c39ccd221d4b037bfafc75dc705b73521da54c003be18fa8ca62d4dab92"
+  },
+  "business_review": {
+    "id": "06-positive-company",
+    "verdict": "acceptable",
+    "summary": "已逐项读取 targeted-fix 后当前 JSON/HTML/Markdown/calls/result，并核对实际工具、Product ID 与报告来源范围。",
+    "checks": [
+      {
+        "expectation": "企业明细按正面标签筛选",
+        "status": "pass",
+        "evidence": "company_news 请求 sentimentLabel=1，当前页8条按正面标签返回。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 8, 776), ('information_monitor', 'data', None, None), ('information_search', 'data', 8, 8), ('information_topic', 'data', 8, 8)]；subject={'enterprise': '贵州茅台酒股份有限公司', 'subject_type': 'enterprise', 'matchKeyword': '贵州茅台酒股份有限公司', 'keywordType': 'name', 'match_raw': '贵州茅台酒股份有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '1', 'monitor_view': 'details'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 8, 'related_enterprises': 6, 'industry_news': 8, 'topic_news': 8}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+      },
+      {
+        "expectation": "来源数量不等同于实际传播效果",
+        "status": "pass",
+        "evidence": "来源数6仅描述样本来源分布，报告明确不等同实际传播效果。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 8, 776), ('information_monitor', 'data', None, None), ('information_search', 'data', 8, 8), ('information_topic', 'data', 8, 8)]；subject={'enterprise': '贵州茅台酒股份有限公司', 'subject_type': 'enterprise', 'matchKeyword': '贵州茅台酒股份有限公司', 'keywordType': 'name', 'match_raw': '贵州茅台酒股份有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '1', 'monitor_view': 'details'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 8, 'related_enterprises': 6, 'industry_news': 8, 'topic_news': 8}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+      },
+      {
+        "expectation": "情感统计与筛选明细口径需区分",
+        "status": "pass",
+        "evidence": "正面统计776与正面筛选明细分别展示，跨产品/口径数量不相加。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 8, 776), ('information_monitor', 'data', None, None), ('information_search', 'data', 8, 8), ('information_topic', 'data', 8, 8)]；subject={'enterprise': '贵州茅台酒股份有限公司', 'subject_type': 'enterprise', 'matchKeyword': '贵州茅台酒股份有限公司', 'keywordType': 'name', 'match_raw': '贵州茅台酒股份有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '1', 'monitor_view': 'details'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 8, 'related_enterprises': 6, 'industry_news': 8, 'topic_news': 8}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+      }
+    ],
+    "issues": [],
+    "evidence_binding": {
+      "report.json": "236570ed01dce3b032994c3b5ab561da8de26d41ccff734085bb37c8046103cc",
+      "report.html": "caaabc06837450dfc2014196af2c9839ac01e580ab5539d1a595f6ff04f35f11",
+      "report.md": "5568349c90086678af663c99101f5e1c5f3509374588b26d9e1a1706693c7ab5",
+      "calls.json": "b951657575068e70c43a99f6df67224d742ef5c2b1dcbe64724c7f6bc93d3b71",
+      "result.json": "d790b71347923fd19ef1a23aa11692d2637fa9b30d13ace021484ad31569fbf8",
+      "source_manifest_sha256": "014e0c39ccd221d4b037bfafc75dc705b73521da54c003be18fa8ca62d4dab92"
+    }
+  }
+}

@@ -1,0 +1,831 @@
+{
+  "run_id": "live-replaced-20261027",
+  "skill": "information-skill",
+  "counts": {
+    "passed": 4
+  },
+  "scenarios": [
+    {
+      "scenario": {
+        "id": "01-company-monitor",
+        "title": "企业资讯监控",
+        "user_request": "跟踪比亚迪股份有限公司的企业资讯、情感统计、全文检索和主题资讯。",
+        "purpose": "建立企业动态监控报告。",
+        "args": [
+          "--enterprise",
+          "比亚迪股份有限公司",
+          "--view",
+          "statistics",
+          "--page-size",
+          "10"
+        ],
+        "expected_checks": [
+          "企业资讯与主题/全文检索结果分章节",
+          "情感统计按四类呈现",
+          "资讯标题、来源、时间与链接按源数据保留",
+          "企业名称查询与主题词查询口径应说明"
+        ],
+        "limitations": [
+          "仅反映本次 HandaaS 数据产品返回范围与生成时点，不等同于官方证明。",
+          "空结果必须保留为空，不能解释为该事项客观不存在。",
+          "资讯收录取决于数据源覆盖，不能视为全网完整监测。"
+        ]
+      },
+      "result": {
+        "schema_version": 1,
+        "skill": "information-skill",
+        "case_id": "01-company-monitor",
+        "title": "企业资讯监控",
+        "invocation_id": "1793070061543822000",
+        "provenance": {
+          "integrator_id": "683e574805537ace146cc05e",
+          "runner_sha256": "05777c2f2b0791cb5157aef691206606dade8df7af3b17212285b7ae74632a66",
+          "credential_policy_sha256": "bcabf08a1ca92f28357c0e57a8bae9bfa910eb1d4b204d8195ee3b7a77106eed",
+          "scenario_sha256": "1e0f3725e35db7e70672c462e587e71935eee394d218c25418276834404e8b48",
+          "skill_source_hashes": {
+            "scripts/common.py": "9c17da7f00f1d5ea39f9cb29be502ef6b65fb50c4b97e735f3dbf61aa4b4b02d",
+            "scripts/compose_report.py": "5e1d262311f5869150f6a9488102b760e36aa5817d602704b575adafb45501a2",
+            "scripts/mcp_client.py": "3825dbbdac8f04c452d89f1b9668cdfd1aae8dea41d84edf8dd2a1ffa3b57dd0",
+            "scripts/render_report.py": "44702838647f595a3bd03ab0fa5eef465e298064f94461cfb9f4404d451adf76",
+            "scripts/validate_config.py": "3239f28b753d7fe5edc3d2bb2c9ec2d787ac07efbc692dc46c2b7d3dc2cb2e4c"
+          },
+          "upstream_source_hashes": {
+            "information-mcp-server": "5ee923aef64f98233ed666a441d8c6ca60eb93fc0182d99ea9063a770adfa054"
+          },
+          "upstream_dependency_hashes": {
+            "information-mcp-server/server/mcp_server.py": "5ee923aef64f98233ed666a441d8c6ca60eb93fc0182d99ea9063a770adfa054"
+          }
+        },
+        "source_changed_during_run": false,
+        "started_at": "2026-10-27T11:01:01+08:00",
+        "elapsed_seconds": 5.356,
+        "returncode": 0,
+        "exception_type": null,
+        "command": "python3 information-skill/scripts/compose_report.py --enterprise '比亚迪股份有限公司' --view statistics --page-size 10 --output information-skill/output/live-replaced-20261027/01-company-monitor/report.json --report-output information-skill/output/live-replaced-20261027/01-company-monitor/report.html",
+        "transport": "local MCP servers via loopback streamable-http",
+        "cache_used": false,
+        "call_count": 4,
+        "successful_data_calls": 4,
+        "empty_calls": 0,
+        "failed_calls": 0,
+        "checks": {
+          "issues": [],
+          "warnings": [],
+          "coverage_pct": 100,
+          "subject": {
+            "enterprise": "比亚迪股份有限公司",
+            "subject_type": "enterprise",
+            "matchKeyword": "比亚迪股份有限公司",
+            "keywordType": "name",
+            "match_raw": "比亚迪股份有限公司",
+            "resolved": true,
+            "resolve_reason": "视为企业全称",
+            "pub_date_begin": "",
+            "pub_date_end": "",
+            "sentiment_label": "",
+            "monitor_view": "statistics"
+          },
+          "title": "比亚迪股份有限公司 资讯大数据报告",
+          "data_mode": null,
+          "metrics": [
+            {
+              "label": "企业资讯数",
+              "value": "5131",
+              "hint": "企业新闻舆情明细总数"
+            },
+            {
+              "label": "行业资讯数",
+              "value": "13",
+              "hint": "行业资讯命中数"
+            },
+            {
+              "label": "主题资讯数",
+              "value": "13",
+              "hint": "主题跟踪命中数"
+            },
+            {
+              "label": "正面资讯",
+              "value": "1540",
+              "hint": "正面情感资讯数",
+              "delta": "占比 30%"
+            },
+            {
+              "label": "负面资讯",
+              "value": "156",
+              "hint": "负面情感资讯数",
+              "delta": "占比 3%"
+            },
+            {
+              "label": "中性资讯",
+              "value": "3402",
+              "hint": "中性情感资讯数",
+              "delta": "占比 66%"
+            },
+            {
+              "label": "正面占比",
+              "value": "30.0%",
+              "hint": "正面资讯占总资讯比例"
+            },
+            {
+              "label": "舆情监控周期",
+              "value": "12",
+              "hint": "有情感数据的月份数"
+            },
+            {
+              "label": "资讯来源数",
+              "value": "6",
+              "hint": "不同媒体/来源数"
+            },
+            {
+              "label": "高频来源",
+              "value": "新浪财经（4篇）",
+              "hint": "报道最多的媒体来源"
+            }
+          ],
+          "quality_report": {
+            "total_sections": 7,
+            "populated_sections": 7,
+            "empty_sections": 0,
+            "coverage_pct": 100
+          },
+          "unregistered_tools": [],
+          "checks": {
+            "json_html_markdown": true,
+            "explicit_live": true,
+            "tool_calls_recorded": 4,
+            "offline_scripts": true,
+            "independent_rerender": true,
+            "offline_browser": true
+          }
+        },
+        "status": "passed",
+        "source_hashes": {
+          "scripts/common.py": "9c17da7f00f1d5ea39f9cb29be502ef6b65fb50c4b97e735f3dbf61aa4b4b02d",
+          "scripts/compose_report.py": "5e1d262311f5869150f6a9488102b760e36aa5817d602704b575adafb45501a2",
+          "scripts/mcp_client.py": "3825dbbdac8f04c452d89f1b9668cdfd1aae8dea41d84edf8dd2a1ffa3b57dd0",
+          "scripts/render_report.py": "44702838647f595a3bd03ab0fa5eef465e298064f94461cfb9f4404d451adf76",
+          "scripts/validate_config.py": "3239f28b753d7fe5edc3d2bb2c9ec2d787ac07efbc692dc46c2b7d3dc2cb2e4c"
+        },
+        "technical_status": "passed",
+        "audited_at": "2026-10-27T11:13:01+08:00",
+        "evidence_binding": {
+          "report.json": "ea4e4e98e90687fe3ecef4ac9a4c8332139a878cd313d8524c386a56b50daf04",
+          "report.html": "dc044c4cb8ac01616badb39ab6e0abc13ecb413ab4a06990d1ff7efc6b70e118",
+          "report.md": "a53fd3eecef77343bbd959ddb17b61c9796d1b499c6223ea04bac4910544dbe6",
+          "calls.json": "d922fd861184b54c7377682335a7d3942af7254e1d658ef4aeaf335fb84a2f0c",
+          "result.json": "8178f9f961fc78e1ba194e23387d69ca5dda8e87a8f85194c3407347a6e4ce57",
+          "source_manifest_sha256": "014e0c39ccd221d4b037bfafc75dc705b73521da54c003be18fa8ca62d4dab92"
+        },
+        "business_review": {
+          "id": "01-company-monitor",
+          "verdict": "acceptable",
+          "summary": "已逐项读取 targeted-fix 后当前 JSON/HTML/Markdown/calls/result，并核对实际工具、Product ID 与报告来源范围。",
+          "checks": [
+            {
+              "expectation": "企业资讯与主题/全文检索结果分章节",
+              "status": "pass",
+              "evidence": "company_news、information_search、information_topic 分别映射企业明细/全文检索/主题章节。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 10, 5131), ('information_monitor', 'data', None, None), ('information_search', 'data', 10, 13), ('information_topic', 'data', 10, 13)]；subject={'enterprise': '比亚迪股份有限公司', 'subject_type': 'enterprise', 'matchKeyword': '比亚迪股份有限公司', 'keywordType': 'name', 'match_raw': '比亚迪股份有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '', 'monitor_view': 'statistics'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 10, 'related_enterprises': 5, 'industry_news': 10, 'topic_news': 10}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+            },
+            {
+              "expectation": "情感统计按四类呈现",
+              "status": "pass",
+              "evidence": "统计分列正面1540、负面156、中性3402、未知33。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 10, 5131), ('information_monitor', 'data', None, None), ('information_search', 'data', 10, 13), ('information_topic', 'data', 10, 13)]；subject={'enterprise': '比亚迪股份有限公司', 'subject_type': 'enterprise', 'matchKeyword': '比亚迪股份有限公司', 'keywordType': 'name', 'match_raw': '比亚迪股份有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '', 'monitor_view': 'statistics'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 10, 'related_enterprises': 5, 'industry_news': 10, 'topic_news': 10}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+            },
+            {
+              "expectation": "资讯标题、来源、时间与链接按源数据保留",
+              "status": "pass",
+              "evidence": "明细保留标题、来源、发布时间、链接。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 10, 5131), ('information_monitor', 'data', None, None), ('information_search', 'data', 10, 13), ('information_topic', 'data', 10, 13)]；subject={'enterprise': '比亚迪股份有限公司', 'subject_type': 'enterprise', 'matchKeyword': '比亚迪股份有限公司', 'keywordType': 'name', 'match_raw': '比亚迪股份有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '', 'monitor_view': 'statistics'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 10, 'related_enterprises': 5, 'industry_news': 10, 'topic_news': 10}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+            },
+            {
+              "expectation": "企业名称查询与主题词查询口径应说明",
+              "status": "pass",
+              "evidence": "caliber 区分企业主体查询与全文/主题产品，并声明跨产品数量不可相加。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 10, 5131), ('information_monitor', 'data', None, None), ('information_search', 'data', 10, 13), ('information_topic', 'data', 10, 13)]；subject={'enterprise': '比亚迪股份有限公司', 'subject_type': 'enterprise', 'matchKeyword': '比亚迪股份有限公司', 'keywordType': 'name', 'match_raw': '比亚迪股份有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '', 'monitor_view': 'statistics'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 10, 'related_enterprises': 5, 'industry_news': 10, 'topic_news': 10}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+            }
+          ],
+          "issues": [],
+          "evidence_binding": {
+            "report.json": "ea4e4e98e90687fe3ecef4ac9a4c8332139a878cd313d8524c386a56b50daf04",
+            "report.html": "dc044c4cb8ac01616badb39ab6e0abc13ecb413ab4a06990d1ff7efc6b70e118",
+            "report.md": "a53fd3eecef77343bbd959ddb17b61c9796d1b499c6223ea04bac4910544dbe6",
+            "calls.json": "d922fd861184b54c7377682335a7d3942af7254e1d658ef4aeaf335fb84a2f0c",
+            "result.json": "8178f9f961fc78e1ba194e23387d69ca5dda8e87a8f85194c3407347a6e4ce57",
+            "source_manifest_sha256": "014e0c39ccd221d4b037bfafc75dc705b73521da54c003be18fa8ca62d4dab92"
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "id": "02-negative-company",
+        "title": "企业负面资讯筛查",
+        "user_request": "筛选华为技术有限公司的负面企业资讯，并保留统计视图。",
+        "purpose": "提供需要人工阅读核实的负面信息线索。",
+        "args": [
+          "--enterprise",
+          "华为技术有限公司",
+          "--sentiment",
+          "0",
+          "--view",
+          "details",
+          "--page-size",
+          "10"
+        ],
+        "expected_checks": [
+          "企业资讯明细应按负面标签筛选",
+          "统计视图与明细过滤口径区别应写明",
+          "不得将负面标签当作事实认定"
+        ],
+        "limitations": [
+          "仅反映本次 HandaaS 数据产品返回范围与生成时点，不等同于官方证明。",
+          "空结果必须保留为空，不能解释为该事项客观不存在。",
+          "自动情感分类和转载内容都可能有误，必须核对原文。"
+        ]
+      },
+      "result": {
+        "schema_version": 1,
+        "skill": "information-skill",
+        "case_id": "02-negative-company",
+        "title": "企业负面资讯筛查",
+        "invocation_id": "1793070061799926000",
+        "provenance": {
+          "integrator_id": "683e574805537ace146cc05e",
+          "runner_sha256": "05777c2f2b0791cb5157aef691206606dade8df7af3b17212285b7ae74632a66",
+          "credential_policy_sha256": "bcabf08a1ca92f28357c0e57a8bae9bfa910eb1d4b204d8195ee3b7a77106eed",
+          "scenario_sha256": "0f0bbe68a496c532570d07b986262864fb84b0bc2dbf32c8b022284a824348e3",
+          "skill_source_hashes": {
+            "scripts/common.py": "9c17da7f00f1d5ea39f9cb29be502ef6b65fb50c4b97e735f3dbf61aa4b4b02d",
+            "scripts/compose_report.py": "5e1d262311f5869150f6a9488102b760e36aa5817d602704b575adafb45501a2",
+            "scripts/mcp_client.py": "3825dbbdac8f04c452d89f1b9668cdfd1aae8dea41d84edf8dd2a1ffa3b57dd0",
+            "scripts/render_report.py": "44702838647f595a3bd03ab0fa5eef465e298064f94461cfb9f4404d451adf76",
+            "scripts/validate_config.py": "3239f28b753d7fe5edc3d2bb2c9ec2d787ac07efbc692dc46c2b7d3dc2cb2e4c"
+          },
+          "upstream_source_hashes": {
+            "information-mcp-server": "5ee923aef64f98233ed666a441d8c6ca60eb93fc0182d99ea9063a770adfa054"
+          },
+          "upstream_dependency_hashes": {
+            "information-mcp-server/server/mcp_server.py": "5ee923aef64f98233ed666a441d8c6ca60eb93fc0182d99ea9063a770adfa054"
+          }
+        },
+        "source_changed_during_run": false,
+        "started_at": "2026-10-27T11:01:01+08:00",
+        "elapsed_seconds": 5.554,
+        "returncode": 0,
+        "exception_type": null,
+        "command": "python3 information-skill/scripts/compose_report.py --enterprise '华为技术有限公司' --sentiment 0 --view details --page-size 10 --output information-skill/output/live-replaced-20261027/02-negative-company/report.json --report-output information-skill/output/live-replaced-20261027/02-negative-company/report.html",
+        "transport": "local MCP servers via loopback streamable-http",
+        "cache_used": false,
+        "call_count": 4,
+        "successful_data_calls": 4,
+        "empty_calls": 0,
+        "failed_calls": 0,
+        "checks": {
+          "issues": [],
+          "warnings": [],
+          "coverage_pct": 100,
+          "subject": {
+            "enterprise": "华为技术有限公司",
+            "subject_type": "enterprise",
+            "matchKeyword": "华为技术有限公司",
+            "keywordType": "name",
+            "match_raw": "华为技术有限公司",
+            "resolved": true,
+            "resolve_reason": "视为企业全称",
+            "pub_date_begin": "",
+            "pub_date_end": "",
+            "sentiment_label": "0",
+            "monitor_view": "details"
+          },
+          "title": "华为技术有限公司 资讯大数据报告",
+          "data_mode": null,
+          "metrics": [
+            {
+              "label": "企业资讯数",
+              "value": "307",
+              "hint": "企业新闻舆情明细总数"
+            },
+            {
+              "label": "行业资讯数",
+              "value": "15",
+              "hint": "行业资讯命中数"
+            },
+            {
+              "label": "主题资讯数",
+              "value": "15",
+              "hint": "主题跟踪命中数"
+            },
+            {
+              "label": "正面资讯",
+              "value": "4617",
+              "hint": "正面情感资讯数",
+              "delta": "占比 54%"
+            },
+            {
+              "label": "负面资讯",
+              "value": "307",
+              "hint": "负面情感资讯数",
+              "delta": "占比 4%"
+            },
+            {
+              "label": "中性资讯",
+              "value": "3670",
+              "hint": "中性情感资讯数",
+              "delta": "占比 43%"
+            },
+            {
+              "label": "正面占比",
+              "value": "53.6%",
+              "hint": "正面资讯占总资讯比例"
+            },
+            {
+              "label": "舆情监控周期",
+              "value": "12",
+              "hint": "有情感数据的月份数"
+            },
+            {
+              "label": "资讯来源数",
+              "value": "8",
+              "hint": "不同媒体/来源数"
+            },
+            {
+              "label": "高频来源",
+              "value": "澎湃新闻（2篇）",
+              "hint": "报道最多的媒体来源"
+            }
+          ],
+          "quality_report": {
+            "total_sections": 7,
+            "populated_sections": 7,
+            "empty_sections": 0,
+            "coverage_pct": 100
+          },
+          "unregistered_tools": [],
+          "checks": {
+            "json_html_markdown": true,
+            "explicit_live": true,
+            "tool_calls_recorded": 4,
+            "offline_scripts": true,
+            "independent_rerender": true,
+            "offline_browser": true
+          }
+        },
+        "status": "passed",
+        "source_hashes": {
+          "scripts/common.py": "9c17da7f00f1d5ea39f9cb29be502ef6b65fb50c4b97e735f3dbf61aa4b4b02d",
+          "scripts/compose_report.py": "5e1d262311f5869150f6a9488102b760e36aa5817d602704b575adafb45501a2",
+          "scripts/mcp_client.py": "3825dbbdac8f04c452d89f1b9668cdfd1aae8dea41d84edf8dd2a1ffa3b57dd0",
+          "scripts/render_report.py": "44702838647f595a3bd03ab0fa5eef465e298064f94461cfb9f4404d451adf76",
+          "scripts/validate_config.py": "3239f28b753d7fe5edc3d2bb2c9ec2d787ac07efbc692dc46c2b7d3dc2cb2e4c"
+        },
+        "technical_status": "passed",
+        "audited_at": "2026-10-27T11:13:01+08:00",
+        "evidence_binding": {
+          "report.json": "9bf6087e356de78a51c63ccf437cef7f9d04de4a4365a7951bdc379821505ce1",
+          "report.html": "b1c2bc0f7bb0324c18ad13e77009288e3cb3d1ca380bc34fb71e1d695c3500af",
+          "report.md": "7de2359317f5565644f1a780013384d7abdffd96f9ddb2558c0ba1ede2c7f7af",
+          "calls.json": "221b74ade349865efdf056e06273c84829ec2773cf4434af1e94795dcda27eea",
+          "result.json": "4b0d61bf2016bad291ca107aeaf2a46d7abbaf3ef1c26ad0ba5a0079e8e8a29d",
+          "source_manifest_sha256": "014e0c39ccd221d4b037bfafc75dc705b73521da54c003be18fa8ca62d4dab92"
+        },
+        "business_review": {
+          "id": "02-negative-company",
+          "verdict": "acceptable",
+          "summary": "已逐项读取 targeted-fix 后当前 JSON/HTML/Markdown/calls/result，并核对实际工具、Product ID 与报告来源范围。",
+          "checks": [
+            {
+              "expectation": "企业资讯明细应按负面标签筛选",
+              "status": "pass",
+              "evidence": "company_news 请求 sentimentLabel=0；当前页记录按返回负面标签展示。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 10, 307), ('information_monitor', 'data', None, None), ('information_search', 'data', 10, 15), ('information_topic', 'data', 10, 15)]；subject={'enterprise': '华为技术有限公司', 'subject_type': 'enterprise', 'matchKeyword': '华为技术有限公司', 'keywordType': 'name', 'match_raw': '华为技术有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '0', 'monitor_view': 'details'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 10, 'related_enterprises': 3, 'industry_news': 10, 'topic_news': 10}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+            },
+            {
+              "expectation": "统计视图与明细过滤口径区别应写明",
+              "status": "pass",
+              "evidence": "统计视图四类总量与负面明细筛选分别披露，不混用。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 10, 307), ('information_monitor', 'data', None, None), ('information_search', 'data', 10, 15), ('information_topic', 'data', 10, 15)]；subject={'enterprise': '华为技术有限公司', 'subject_type': 'enterprise', 'matchKeyword': '华为技术有限公司', 'keywordType': 'name', 'match_raw': '华为技术有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '0', 'monitor_view': 'details'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 10, 'related_enterprises': 3, 'industry_news': 10, 'topic_news': 10}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+            },
+            {
+              "expectation": "不得将负面标签当作事实认定",
+              "status": "pass",
+              "evidence": "报告明确负面标签不能替代对原文事实的核验，下降也不代表应对有效。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 10, 307), ('information_monitor', 'data', None, None), ('information_search', 'data', 10, 15), ('information_topic', 'data', 10, 15)]；subject={'enterprise': '华为技术有限公司', 'subject_type': 'enterprise', 'matchKeyword': '华为技术有限公司', 'keywordType': 'name', 'match_raw': '华为技术有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '0', 'monitor_view': 'details'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 10, 'related_enterprises': 3, 'industry_news': 10, 'topic_news': 10}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+            }
+          ],
+          "issues": [],
+          "evidence_binding": {
+            "report.json": "9bf6087e356de78a51c63ccf437cef7f9d04de4a4365a7951bdc379821505ce1",
+            "report.html": "b1c2bc0f7bb0324c18ad13e77009288e3cb3d1ca380bc34fb71e1d695c3500af",
+            "report.md": "7de2359317f5565644f1a780013384d7abdffd96f9ddb2558c0ba1ede2c7f7af",
+            "calls.json": "221b74ade349865efdf056e06273c84829ec2773cf4434af1e94795dcda27eea",
+            "result.json": "4b0d61bf2016bad291ca107aeaf2a46d7abbaf3ef1c26ad0ba5a0079e8e8a29d",
+            "source_manifest_sha256": "014e0c39ccd221d4b037bfafc75dc705b73521da54c003be18fa8ca62d4dab92"
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "id": "06-positive-company",
+        "title": "企业正面资讯抽样",
+        "user_request": "查看贵州茅台酒股份有限公司的正面企业资讯样本。",
+        "purpose": "观察正面内容来源和主题构成。",
+        "args": [
+          "--enterprise",
+          "贵州茅台酒股份有限公司",
+          "--sentiment",
+          "1",
+          "--view",
+          "details",
+          "--page-size",
+          "8"
+        ],
+        "expected_checks": [
+          "企业明细按正面标签筛选",
+          "来源数量不等同于实际传播效果",
+          "情感统计与筛选明细口径需区分"
+        ],
+        "limitations": [
+          "仅反映本次 HandaaS 数据产品返回范围与生成时点，不等同于官方证明。",
+          "空结果必须保留为空，不能解释为该事项客观不存在。",
+          "正面标签不能证明内容真实或代表公众总体态度。"
+        ]
+      },
+      "result": {
+        "schema_version": 1,
+        "skill": "information-skill",
+        "case_id": "06-positive-company",
+        "title": "企业正面资讯抽样",
+        "invocation_id": "1793070066798364000",
+        "provenance": {
+          "integrator_id": "683e574805537ace146cc05e",
+          "runner_sha256": "05777c2f2b0791cb5157aef691206606dade8df7af3b17212285b7ae74632a66",
+          "credential_policy_sha256": "bcabf08a1ca92f28357c0e57a8bae9bfa910eb1d4b204d8195ee3b7a77106eed",
+          "scenario_sha256": "f6c17e2e719573444efd2c4cd5309f39ed6a3bbd9f0b52d02a62b0a8c62d120f",
+          "skill_source_hashes": {
+            "scripts/common.py": "9c17da7f00f1d5ea39f9cb29be502ef6b65fb50c4b97e735f3dbf61aa4b4b02d",
+            "scripts/compose_report.py": "5e1d262311f5869150f6a9488102b760e36aa5817d602704b575adafb45501a2",
+            "scripts/mcp_client.py": "3825dbbdac8f04c452d89f1b9668cdfd1aae8dea41d84edf8dd2a1ffa3b57dd0",
+            "scripts/render_report.py": "44702838647f595a3bd03ab0fa5eef465e298064f94461cfb9f4404d451adf76",
+            "scripts/validate_config.py": "3239f28b753d7fe5edc3d2bb2c9ec2d787ac07efbc692dc46c2b7d3dc2cb2e4c"
+          },
+          "upstream_source_hashes": {
+            "information-mcp-server": "5ee923aef64f98233ed666a441d8c6ca60eb93fc0182d99ea9063a770adfa054"
+          },
+          "upstream_dependency_hashes": {
+            "information-mcp-server/server/mcp_server.py": "5ee923aef64f98233ed666a441d8c6ca60eb93fc0182d99ea9063a770adfa054"
+          }
+        },
+        "source_changed_during_run": false,
+        "started_at": "2026-10-27T11:01:06+08:00",
+        "elapsed_seconds": 4.128,
+        "returncode": 0,
+        "exception_type": null,
+        "command": "python3 information-skill/scripts/compose_report.py --enterprise '贵州茅台酒股份有限公司' --sentiment 1 --view details --page-size 8 --output information-skill/output/live-replaced-20261027/06-positive-company/report.json --report-output information-skill/output/live-replaced-20261027/06-positive-company/report.html",
+        "transport": "local MCP servers via loopback streamable-http",
+        "cache_used": false,
+        "call_count": 4,
+        "successful_data_calls": 4,
+        "empty_calls": 0,
+        "failed_calls": 0,
+        "checks": {
+          "issues": [],
+          "warnings": [],
+          "coverage_pct": 100,
+          "subject": {
+            "enterprise": "贵州茅台酒股份有限公司",
+            "subject_type": "enterprise",
+            "matchKeyword": "贵州茅台酒股份有限公司",
+            "keywordType": "name",
+            "match_raw": "贵州茅台酒股份有限公司",
+            "resolved": true,
+            "resolve_reason": "视为企业全称",
+            "pub_date_begin": "",
+            "pub_date_end": "",
+            "sentiment_label": "1",
+            "monitor_view": "details"
+          },
+          "title": "贵州茅台酒股份有限公司 资讯大数据报告",
+          "data_mode": null,
+          "metrics": [
+            {
+              "label": "企业资讯数",
+              "value": "776",
+              "hint": "企业新闻舆情明细总数"
+            },
+            {
+              "label": "行业资讯数",
+              "value": "8",
+              "hint": "行业资讯命中数"
+            },
+            {
+              "label": "主题资讯数",
+              "value": "8",
+              "hint": "主题跟踪命中数"
+            },
+            {
+              "label": "正面资讯",
+              "value": "776",
+              "hint": "正面情感资讯数",
+              "delta": "占比 18%"
+            },
+            {
+              "label": "负面资讯",
+              "value": "632",
+              "hint": "负面情感资讯数",
+              "delta": "占比 15%"
+            },
+            {
+              "label": "中性资讯",
+              "value": "2851",
+              "hint": "中性情感资讯数",
+              "delta": "占比 67%"
+            },
+            {
+              "label": "正面占比",
+              "value": "18.1%",
+              "hint": "正面资讯占总资讯比例"
+            },
+            {
+              "label": "舆情监控周期",
+              "value": "12",
+              "hint": "有情感数据的月份数"
+            },
+            {
+              "label": "资讯来源数",
+              "value": "6",
+              "hint": "不同媒体/来源数"
+            },
+            {
+              "label": "高频来源",
+              "value": "证券之星（2篇）",
+              "hint": "报道最多的媒体来源"
+            }
+          ],
+          "quality_report": {
+            "total_sections": 7,
+            "populated_sections": 7,
+            "empty_sections": 0,
+            "coverage_pct": 100
+          },
+          "unregistered_tools": [],
+          "checks": {
+            "json_html_markdown": true,
+            "explicit_live": true,
+            "tool_calls_recorded": 4,
+            "offline_scripts": true,
+            "independent_rerender": true,
+            "offline_browser": true
+          }
+        },
+        "status": "passed",
+        "source_hashes": {
+          "scripts/common.py": "9c17da7f00f1d5ea39f9cb29be502ef6b65fb50c4b97e735f3dbf61aa4b4b02d",
+          "scripts/compose_report.py": "5e1d262311f5869150f6a9488102b760e36aa5817d602704b575adafb45501a2",
+          "scripts/mcp_client.py": "3825dbbdac8f04c452d89f1b9668cdfd1aae8dea41d84edf8dd2a1ffa3b57dd0",
+          "scripts/render_report.py": "44702838647f595a3bd03ab0fa5eef465e298064f94461cfb9f4404d451adf76",
+          "scripts/validate_config.py": "3239f28b753d7fe5edc3d2bb2c9ec2d787ac07efbc692dc46c2b7d3dc2cb2e4c"
+        },
+        "technical_status": "passed",
+        "audited_at": "2026-10-27T11:13:01+08:00",
+        "evidence_binding": {
+          "report.json": "236570ed01dce3b032994c3b5ab561da8de26d41ccff734085bb37c8046103cc",
+          "report.html": "caaabc06837450dfc2014196af2c9839ac01e580ab5539d1a595f6ff04f35f11",
+          "report.md": "5568349c90086678af663c99101f5e1c5f3509374588b26d9e1a1706693c7ab5",
+          "calls.json": "b951657575068e70c43a99f6df67224d742ef5c2b1dcbe64724c7f6bc93d3b71",
+          "result.json": "d790b71347923fd19ef1a23aa11692d2637fa9b30d13ace021484ad31569fbf8",
+          "source_manifest_sha256": "014e0c39ccd221d4b037bfafc75dc705b73521da54c003be18fa8ca62d4dab92"
+        },
+        "business_review": {
+          "id": "06-positive-company",
+          "verdict": "acceptable",
+          "summary": "已逐项读取 targeted-fix 后当前 JSON/HTML/Markdown/calls/result，并核对实际工具、Product ID 与报告来源范围。",
+          "checks": [
+            {
+              "expectation": "企业明细按正面标签筛选",
+              "status": "pass",
+              "evidence": "company_news 请求 sentimentLabel=1，当前页8条按正面标签返回。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 8, 776), ('information_monitor', 'data', None, None), ('information_search', 'data', 8, 8), ('information_topic', 'data', 8, 8)]；subject={'enterprise': '贵州茅台酒股份有限公司', 'subject_type': 'enterprise', 'matchKeyword': '贵州茅台酒股份有限公司', 'keywordType': 'name', 'match_raw': '贵州茅台酒股份有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '1', 'monitor_view': 'details'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 8, 'related_enterprises': 6, 'industry_news': 8, 'topic_news': 8}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+            },
+            {
+              "expectation": "来源数量不等同于实际传播效果",
+              "status": "pass",
+              "evidence": "来源数6仅描述样本来源分布，报告明确不等同实际传播效果。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 8, 776), ('information_monitor', 'data', None, None), ('information_search', 'data', 8, 8), ('information_topic', 'data', 8, 8)]；subject={'enterprise': '贵州茅台酒股份有限公司', 'subject_type': 'enterprise', 'matchKeyword': '贵州茅台酒股份有限公司', 'keywordType': 'name', 'match_raw': '贵州茅台酒股份有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '1', 'monitor_view': 'details'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 8, 'related_enterprises': 6, 'industry_news': 8, 'topic_news': 8}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+            },
+            {
+              "expectation": "情感统计与筛选明细口径需区分",
+              "status": "pass",
+              "evidence": "正面统计776与正面筛选明细分别展示，跨产品/口径数量不相加。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 8, 776), ('information_monitor', 'data', None, None), ('information_search', 'data', 8, 8), ('information_topic', 'data', 8, 8)]；subject={'enterprise': '贵州茅台酒股份有限公司', 'subject_type': 'enterprise', 'matchKeyword': '贵州茅台酒股份有限公司', 'keywordType': 'name', 'match_raw': '贵州茅台酒股份有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '1', 'monitor_view': 'details'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 8, 'related_enterprises': 6, 'industry_news': 8, 'topic_news': 8}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+            }
+          ],
+          "issues": [],
+          "evidence_binding": {
+            "report.json": "236570ed01dce3b032994c3b5ab561da8de26d41ccff734085bb37c8046103cc",
+            "report.html": "caaabc06837450dfc2014196af2c9839ac01e580ab5539d1a595f6ff04f35f11",
+            "report.md": "5568349c90086678af663c99101f5e1c5f3509374588b26d9e1a1706693c7ab5",
+            "calls.json": "b951657575068e70c43a99f6df67224d742ef5c2b1dcbe64724c7f6bc93d3b71",
+            "result.json": "d790b71347923fd19ef1a23aa11692d2637fa9b30d13ace021484ad31569fbf8",
+            "source_manifest_sha256": "014e0c39ccd221d4b037bfafc75dc705b73521da54c003be18fa8ca62d4dab92"
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "id": "07-compact-information",
+        "title": "企业资讯快报",
+        "user_request": "为腾讯科技（深圳）有限公司生成前 5 条资讯的管理层快报。",
+        "purpose": "验证小分页、统计与三种格式的一致性。",
+        "args": [
+          "--enterprise",
+          "腾讯科技（深圳）有限公司",
+          "--view",
+          "details",
+          "--page-size",
+          "5"
+        ],
+        "expected_checks": [
+          "每类明细最多 5 条或实际返回数",
+          "总量和当前页样本不得混淆",
+          "HTML、Markdown、JSON 的标题与来源一致"
+        ],
+        "limitations": [
+          "仅反映本次 HandaaS 数据产品返回范围与生成时点，不等同于官方证明。",
+          "空结果必须保留为空，不能解释为该事项客观不存在。",
+          "快报不是全量资讯档案。"
+        ]
+      },
+      "result": {
+        "schema_version": 1,
+        "skill": "information-skill",
+        "case_id": "07-compact-information",
+        "title": "企业资讯快报",
+        "invocation_id": "1793070067224920000",
+        "provenance": {
+          "integrator_id": "683e574805537ace146cc05e",
+          "runner_sha256": "05777c2f2b0791cb5157aef691206606dade8df7af3b17212285b7ae74632a66",
+          "credential_policy_sha256": "bcabf08a1ca92f28357c0e57a8bae9bfa910eb1d4b204d8195ee3b7a77106eed",
+          "scenario_sha256": "084cc99834b5350468aa381086506506ea99934e83cb9c891e79089f9cb659fa",
+          "skill_source_hashes": {
+            "scripts/common.py": "9c17da7f00f1d5ea39f9cb29be502ef6b65fb50c4b97e735f3dbf61aa4b4b02d",
+            "scripts/compose_report.py": "5e1d262311f5869150f6a9488102b760e36aa5817d602704b575adafb45501a2",
+            "scripts/mcp_client.py": "3825dbbdac8f04c452d89f1b9668cdfd1aae8dea41d84edf8dd2a1ffa3b57dd0",
+            "scripts/render_report.py": "44702838647f595a3bd03ab0fa5eef465e298064f94461cfb9f4404d451adf76",
+            "scripts/validate_config.py": "3239f28b753d7fe5edc3d2bb2c9ec2d787ac07efbc692dc46c2b7d3dc2cb2e4c"
+          },
+          "upstream_source_hashes": {
+            "information-mcp-server": "5ee923aef64f98233ed666a441d8c6ca60eb93fc0182d99ea9063a770adfa054"
+          },
+          "upstream_dependency_hashes": {
+            "information-mcp-server/server/mcp_server.py": "5ee923aef64f98233ed666a441d8c6ca60eb93fc0182d99ea9063a770adfa054"
+          }
+        },
+        "source_changed_during_run": false,
+        "started_at": "2026-10-27T11:01:07+08:00",
+        "elapsed_seconds": 3.892,
+        "returncode": 0,
+        "exception_type": null,
+        "command": "python3 information-skill/scripts/compose_report.py --enterprise '腾讯科技（深圳）有限公司' --view details --page-size 5 --output information-skill/output/live-replaced-20261027/07-compact-information/report.json --report-output information-skill/output/live-replaced-20261027/07-compact-information/report.html",
+        "transport": "local MCP servers via loopback streamable-http",
+        "cache_used": false,
+        "call_count": 4,
+        "successful_data_calls": 4,
+        "empty_calls": 0,
+        "failed_calls": 0,
+        "checks": {
+          "issues": [],
+          "warnings": [],
+          "coverage_pct": 100,
+          "subject": {
+            "enterprise": "腾讯科技（深圳）有限公司",
+            "subject_type": "enterprise",
+            "matchKeyword": "腾讯科技（深圳）有限公司",
+            "keywordType": "name",
+            "match_raw": "腾讯科技（深圳）有限公司",
+            "resolved": true,
+            "resolve_reason": "视为企业全称",
+            "pub_date_begin": "",
+            "pub_date_end": "",
+            "sentiment_label": "",
+            "monitor_view": "details"
+          },
+          "title": "腾讯科技（深圳）有限公司 资讯大数据报告",
+          "data_mode": null,
+          "metrics": [
+            {
+              "label": "企业资讯数",
+              "value": "1859",
+              "hint": "企业新闻舆情明细总数"
+            },
+            {
+              "label": "行业资讯数",
+              "value": "2",
+              "hint": "行业资讯命中数"
+            },
+            {
+              "label": "主题资讯数",
+              "value": "2",
+              "hint": "主题跟踪命中数"
+            },
+            {
+              "label": "正面资讯",
+              "value": "603",
+              "hint": "正面情感资讯数",
+              "delta": "占比 32%"
+            },
+            {
+              "label": "负面资讯",
+              "value": "303",
+              "hint": "负面情感资讯数",
+              "delta": "占比 16%"
+            },
+            {
+              "label": "中性资讯",
+              "value": "935",
+              "hint": "中性情感资讯数",
+              "delta": "占比 50%"
+            },
+            {
+              "label": "正面占比",
+              "value": "32.4%",
+              "hint": "正面资讯占总资讯比例"
+            },
+            {
+              "label": "舆情监控周期",
+              "value": "12",
+              "hint": "有情感数据的月份数"
+            },
+            {
+              "label": "资讯来源数",
+              "value": "2",
+              "hint": "不同媒体/来源数"
+            },
+            {
+              "label": "高频来源",
+              "value": "金融界（4篇）",
+              "hint": "报道最多的媒体来源"
+            }
+          ],
+          "quality_report": {
+            "total_sections": 7,
+            "populated_sections": 7,
+            "empty_sections": 0,
+            "coverage_pct": 100
+          },
+          "unregistered_tools": [],
+          "checks": {
+            "json_html_markdown": true,
+            "explicit_live": true,
+            "tool_calls_recorded": 4,
+            "offline_scripts": true,
+            "independent_rerender": true,
+            "offline_browser": true
+          }
+        },
+        "status": "passed",
+        "source_hashes": {
+          "scripts/common.py": "9c17da7f00f1d5ea39f9cb29be502ef6b65fb50c4b97e735f3dbf61aa4b4b02d",
+          "scripts/compose_report.py": "5e1d262311f5869150f6a9488102b760e36aa5817d602704b575adafb45501a2",
+          "scripts/mcp_client.py": "3825dbbdac8f04c452d89f1b9668cdfd1aae8dea41d84edf8dd2a1ffa3b57dd0",
+          "scripts/render_report.py": "44702838647f595a3bd03ab0fa5eef465e298064f94461cfb9f4404d451adf76",
+          "scripts/validate_config.py": "3239f28b753d7fe5edc3d2bb2c9ec2d787ac07efbc692dc46c2b7d3dc2cb2e4c"
+        },
+        "technical_status": "passed",
+        "audited_at": "2026-10-27T11:13:01+08:00",
+        "evidence_binding": {
+          "report.json": "184f75439154df5555db608514f71965f4e7e514ce1910bcacca1d93b024fac4",
+          "report.html": "049acf82f8fe311d17c73e5953a0e66f1985eff9ee641e1675f809bf0a2ebda0",
+          "report.md": "f384faef9319932fff1124e0895bdd591c199c6f68aea0d73c5f9a5c6897131e",
+          "calls.json": "e62b9c8debb7a06d225ca3276bca7c8b5340623518ec81713657a5942f886f78",
+          "result.json": "1ed01e9f7147d95ffd95b58f096395eb255e2bdae7b8e3faa0bcf40eec6206f0",
+          "source_manifest_sha256": "014e0c39ccd221d4b037bfafc75dc705b73521da54c003be18fa8ca62d4dab92"
+        },
+        "business_review": {
+          "id": "07-compact-information",
+          "verdict": "acceptable",
+          "summary": "已逐项读取 targeted-fix 后当前 JSON/HTML/Markdown/calls/result，并核对实际工具、Product ID 与报告来源范围。",
+          "checks": [
+            {
+              "expectation": "每类明细最多 5 条或实际返回数",
+              "status": "pass",
+              "evidence": "company_news当前页5条，search/topic各2条，均不超过pageSize=5或实际返回。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 5, 1859), ('information_monitor', 'data', None, None), ('information_search', 'data', 2, 2), ('information_topic', 'data', 2, 2)]；subject={'enterprise': '腾讯科技（深圳）有限公司', 'subject_type': 'enterprise', 'matchKeyword': '腾讯科技（深圳）有限公司', 'keywordType': 'name', 'match_raw': '腾讯科技（深圳）有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '', 'monitor_view': 'details'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 5, 'related_enterprises': 15, 'industry_news': 2, 'topic_news': 2}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+            },
+            {
+              "expectation": "总量和当前页样本不得混淆",
+              "status": "pass",
+              "evidence": "企业资讯总量1859与当前页5条分开，全文/主题各自总量2也独立。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 5, 1859), ('information_monitor', 'data', None, None), ('information_search', 'data', 2, 2), ('information_topic', 'data', 2, 2)]；subject={'enterprise': '腾讯科技（深圳）有限公司', 'subject_type': 'enterprise', 'matchKeyword': '腾讯科技（深圳）有限公司', 'keywordType': 'name', 'match_raw': '腾讯科技（深圳）有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '', 'monitor_view': 'details'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 5, 'related_enterprises': 15, 'industry_news': 2, 'topic_news': 2}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+            },
+            {
+              "expectation": "HTML、Markdown、JSON 的标题与来源一致",
+              "status": "pass",
+              "evidence": "独立重渲染通过，三种格式基于同一记录标题与来源。 本轮 targeted-fix 实际证据：technical_status=passed，successful_data_calls=4，actual_calls=[('information_company_news', 'data', 5, 1859), ('information_monitor', 'data', None, None), ('information_search', 'data', 2, 2), ('information_topic', 'data', 2, 2)]；subject={'enterprise': '腾讯科技（深圳）有限公司', 'subject_type': 'enterprise', 'matchKeyword': '腾讯科技（深圳）有限公司', 'keywordType': 'name', 'match_raw': '腾讯科技（深圳）有限公司', 'resolved': True, 'resolve_reason': '视为企业全称', 'pub_date_begin': '', 'pub_date_end': '', 'sentiment_label': '', 'monitor_view': 'details'}；sections={'company_news_statistics': 5, 'sentiment_dist': 4, 'sentiment_trend': 12, 'company_news': 5, 'related_enterprises': 15, 'industry_news': 2, 'topic_news': 2}；products=[('企业资讯查询', '66b485eadaf8c77fb249a455'), ('企业资讯监控', '66b338e274bf098447db7efd'), ('资讯全文检索', '6a60928a935bb6a5c6bbd68f'), ('资讯主题跟踪', '6a60928a935bb6a5c6bbd68f')]；caliber.data_scope=企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪；quality={'total_sections': 7, 'populated_sections': 7, 'empty_sections': 0, 'coverage_pct': 100}。"
+            }
+          ],
+          "issues": [],
+          "evidence_binding": {
+            "report.json": "184f75439154df5555db608514f71965f4e7e514ce1910bcacca1d93b024fac4",
+            "report.html": "049acf82f8fe311d17c73e5953a0e66f1985eff9ee641e1675f809bf0a2ebda0",
+            "report.md": "f384faef9319932fff1124e0895bdd591c199c6f68aea0d73c5f9a5c6897131e",
+            "calls.json": "e62b9c8debb7a06d225ca3276bca7c8b5340623518ec81713657a5942f886f78",
+            "result.json": "1ed01e9f7147d95ffd95b58f096395eb255e2bdae7b8e3faa0bcf40eec6206f0",
+            "source_manifest_sha256": "014e0c39ccd221d4b037bfafc75dc705b73521da54c003be18fa8ca62d4dab92"
+          }
+        }
+      }
+    }
+  ]
+}

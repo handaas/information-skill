@@ -1,0 +1,40 @@
+{
+  "metric_overflows": [],
+  "document_title": "比亚迪股份有限公司 资讯大数据报告",
+  "title_matches": true,
+  "charts": 2,
+  "rendered_charts": 2,
+  "zero_size_charts": 0,
+  "chart_details": [
+    {
+      "width": 984,
+      "height": 300,
+      "instance": true,
+      "renderer": true,
+      "graphics": 25
+    },
+    {
+      "width": 984,
+      "height": 300,
+      "instance": true,
+      "renderer": true,
+      "graphics": 126
+    }
+  ],
+  "page_width": 1905,
+  "viewport_width": 1920,
+  "empty_headers": 0,
+  "script_errors": [],
+  "external_resources": 0,
+  "external_asset_references": 0,
+  "ok": true,
+  "report_html_sha256": "dc044c4cb8ac01616badb39ab6e0abc13ecb413ab4a06990d1ff7efc6b70e118",
+  "report_json_sha256": "ea4e4e98e90687fe3ecef4ac9a4c8332139a878cd313d8524c386a56b50daf04",
+  "screenshot": "browser.png",
+  "skill": "information-skill",
+  "id": "01-company-monitor",
+  "browser": "Ego Lite",
+  "space_id": 4,
+  "offline": true,
+  "checked_at": "2026-10-27T03:03:24.042Z"
+}
