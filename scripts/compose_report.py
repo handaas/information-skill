@@ -18,9 +18,11 @@ This file never prints secrets; MCP credentials live in the server's own .env.
 from __future__ import annotations
 
 import argparse
+import copy
 import datetime as dt
 import json
 import pathlib
+import re
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from common import REPORT_BANNER, REPORT_TYPE, attach_pagination, call_tool_once, collect_detail_pages, die, json_dumps, load_json_file, paid_call_scope, print_json
@@ -220,34 +222,9 @@ def resolve_enterprise_name(raw: str) -> Dict[str, Any]:
     return {"keyword": raw, "enterprise": "", "resolved": True, "reason": "按资讯主题关键词检索", "subject_type": "topic"}
 
 
-def _derive_core_metrics(metrics: List[Dict[str, Any]], core: Mapping[str, Any]) -> List[Dict[str, Any]]:
-    """Derive additional metrics from core analysis sections."""
-    sentiment = core.get("sentiment_dist", []) if isinstance(core, dict) else []
-    trend = core.get("sentiment_trend", []) if isinstance(core, dict) else []
-    news = core.get("company_news", []) if isinstance(core, dict) else []
-    if isinstance(sentiment, list) and sentiment:
-        try:
-            total = sum(int(r.get("数量", 0)) for r in sentiment if str(r.get("数量", "0")).isdigit())
-            positive = sum(int(r.get("数量", 0)) for r in sentiment if "正面" in str(r.get("情感", "")) and str(r.get("数量", "0")).isdigit())
-            if total > 0:
-                metrics.append({"label": "正面占比", "value": f"{positive/total*100:.1f}%", "hint": "正面资讯占总资讯比例"})
-        except (ValueError, TypeError):
-            pass
-    if isinstance(trend, list) and trend:
-        metrics.append({"label": "舆情监控周期", "value": str(len(trend)), "hint": "有情感数据的月份数"})
-    if isinstance(news, list) and news:
-        sources = set(str(r.get("来源", "")) for r in news if r.get("来源"))
-        if sources:
-            metrics.append({"label": "资讯来源数", "value": str(len(sources)), "hint": "不同媒体/来源数"})
-        try:
-            from collections import Counter
-            src_counts = Counter(str(r.get("来源", "")) for r in news if r.get("来源"))
-            if src_counts:
-                top_src = src_counts.most_common(1)[0]
-                metrics.append({"label": "高频来源", "value": f"{top_src[0]}（{top_src[1]}篇）", "hint": "报道最多的媒体来源"})
-        except Exception:
-            pass
-    return metrics
+# Legacy sample-scoped metric labels removed from composer output; used only by
+# apply_content_review() to clean older payloads.
+SAMPLE_METRIC_LABELS = {"资讯来源数", "高频来源", "舆情监控周期", "正面占比"}
 
 
 # --------------------------------------------------------------------------- #
@@ -324,15 +301,20 @@ def requested_products(subject: Mapping[str, Any]) -> List[Dict[str, str]]:
 
 def build_caliber(subject: Mapping[str, Any], opts: Mapping[str, Any]) -> Dict[str, Any]:
     sentiment_hint = ""
-    if opts.get("sentiment") is not None:
-        sentiment_hint = f"；sentimentLabel={opts.get('sentiment')}"
+    raw_sentiment = opts.get("sentiment")
+    if raw_sentiment not in (None, ""):
+        try:
+            sentiment_name = _SENTIMENT_LABEL_MAP.get(int(raw_sentiment), "未知")
+        except (TypeError, ValueError):
+            sentiment_name = _text(raw_sentiment)
+        sentiment_hint = f"；明细筛选：情感={sentiment_name}"
     date_hint = ""
     if opts.get("pub_start") or opts.get("pub_end"):
         date_hint = f"；发布区间 {opts.get('pub_start') or '不限'}~{opts.get('pub_end') or '不限'}"
     products = [item["name"] for item in requested_products(subject)]
     return {
         "match_target": subject.get("enterprise") or subject.get("match_raw"),
-        "match_type": f"企业资讯按企业主体匹配（keywordType={subject.get('keywordType', 'name')}）；行业/主题/全文检索按关键词匹配{sentiment_hint}{date_hint}",
+        "match_type": f"企业资讯按企业主体匹配；行业/主题/全文检索按关键词匹配{sentiment_hint}{date_hint}",
         "data_scope": "、".join(products),
         "products": products,
         "limit": "数据来自公开新闻资讯；记录数不等于独立事件数，跨产品数量不可相加。全文检索、主题跟踪及企业资讯可能返回同题转载或相同记录，报告未执行跨产品去重。",
@@ -371,11 +353,46 @@ def _news_rows(payload: Any, *, title_key: str = "informationTitle") -> List[Dic
     return rows
 
 
+_ENTITY_TYPE_MAP = {
+    "enterprise": "企业",
+    "company": "企业",
+    "person": "个人",
+    "organization": "机构",
+    "organisation": "机构",
+    "institution": "机构",
+    "government": "政府",
+    "university": "高校",
+}
+
+
+def _self_entity_key(value: Any) -> str:
+    """Presentation-only key for subject self-exclusion.
+
+    Only full/half-width bracket variants and whitespace are normalized; other
+    punctuation is preserved so distinct legal names are not conflated.
+    """
+    text = _text(value).strip().lower()
+    for src, dst in (("（", "("), ("）", ")"), ("【", "["), ("】", "]")):
+        text = text.replace(src, dst)
+    return "".join(ch for ch in text if not ch.isspace())
+
+
+def _entity_type_text(value: Any) -> str:
+    text = _text(value)
+    return _ENTITY_TYPE_MAP.get(text.lower(), text) if text else "-"
+
+
 def _related_enterprises_rows(payload: Any, *, exclude_name: str = "") -> List[Dict[str, Any]]:
     """Aggregate co-mentioned enterprises from resultList[].relatedEnterprises.
-    Returns top entities by co-occurrence count: {企业名称, 类型, 共现次数}."""
+
+    Self-exclusion compares presentation-only keys (full/half-width brackets
+    and whitespace). Other entities are keyed by their exact raw name; distinct
+    names are never merged without identity evidence. Returns at most 15 rows;
+    callers must not present len(rows) as the total number of co-mentioned
+    entities.
+    """
     counter: Dict[str, Dict[str, Any]] = {}
-    exclude_norm = (exclude_name or "").strip()
+    exclude_key = _self_entity_key(exclude_name)
     for item in _first_list(payload):
         if not isinstance(item, dict):
             continue
@@ -386,9 +403,9 @@ def _related_enterprises_rows(payload: Any, *, exclude_name: str = "") -> List[D
             if not isinstance(ent, dict):
                 continue
             name = _text(ent.get("name")).strip()
-            if not name or name == exclude_norm:
+            if not name or (exclude_key and _self_entity_key(name) == exclude_key):
                 continue
-            entry = counter.setdefault(name, {"企业名称": name, "类型": _text(ent.get("entityType")) or "-", "共现次数": 0})
+            entry = counter.setdefault(name, {"企业名称": name, "类型": _entity_type_text(ent.get("entityType")), "共现次数": 0})
             try:
                 entry["共现次数"] = int(entry["共现次数"]) + 1
             except (TypeError, ValueError):
@@ -420,7 +437,8 @@ def build_core_analysis(
         if val is not None:
             stats_kv[label_map[key]] = _text(val)
     if isinstance(s.get("sentimentLabelList"), list) and s["sentimentLabelList"]:
-        stats_kv["情感类别"] = "、".join(_text(t) for t in s["sentimentLabelList"] if t)
+        reverse_map = {"positive": "正面", "negative": "负面", "neutral": "中性", "unknown": "未知"}
+        stats_kv["情感类别"] = "、".join(reverse_map.get(str(t).lower(), _text(t)) for t in s["sentimentLabelList"] if t)
     # 趋势
     trend_rows: List[Dict[str, Any]] = []
     news_trend = s.get("newsSentimentTrend")
@@ -461,24 +479,37 @@ def build_core_analysis(
     subject_enterprise = opts.get("enterprise") or ""
     related_rows = _related_enterprises_rows(company_news, exclude_name=subject_enterprise)
 
+    title_counts: Dict[str, int] = {}
+    for row in company_rows:
+        title = row.get("标题") or "-"
+        if title and title != "-":
+            title_counts[title] = title_counts.get(title, 0) + 1
+    repost_kv = {
+        "样本条数": len(company_rows),
+        "标题完全一致的重复记录": sum(n - 1 for n in title_counts.values() if n > 1),
+        "去重后标题数": len(title_counts),
+        "说明": "仅按标题完全一致识别疑似转载/重复收录；近义标题、改标题转载及同一事件的多次进展未合并。",
+    }
+
     sections = [
-        {"key": "company_news_statistics", "title": "企业资讯统计", "kind": "kv", "note": "情感分布（正/负/中/未知）"},
+        {"key": "company_news_statistics", "title": "企业资讯统计", "kind": "kv", "note": "情感分布（正/负/中/未知）；情感为上游模型标签"},
         {"key": "sentiment_dist", "title": "资讯情感分布", "kind": "donut", "note": "按情感类别统计资讯数量占比",
          "chart": {"name": "情感", "value": "数量"}, "columns": [("情感", "情感"), ("数量", "数量")]},
         {"key": "sentiment_trend", "title": "舆情情感趋势", "kind": "multi_line", "note": "按月份统计情感分布",
          "chart": {"x": "周期/月份", "series": ["负面", "正面", "中性"], "area": False},
          "columns": [("周期/月份", "周期/月份"), ("负面", "负面"), ("正面", "正面"), ("中性", "中性")]},
         {"key": "company_news", "title": "企业资讯明细", "kind": "table",
-         "note": f"命中 {company_total if company_total is not None else '未返回总数'} 条" + (f"；sentimentLabel={opts.get('sentiment')}" if opts.get("sentiment") is not None else ""),
+         "note": f"命中 {company_total if company_total is not None else '未返回总数'} 条" + (f"；明细筛选：情感={_SENTIMENT_LABEL_MAP.get(_int(opts.get('sentiment')), '未知')}" if opts.get("sentiment") is not None else ""),
          "columns": [("标题", "标题"), ("来源", "来源"), ("发布时间", "发布时间"), ("情感", "情感"), ("链接", "链接"), ("简介", "简介")]},
+        {"key": "repost_summary", "title": "重复与转载提示", "kind": "kv", "note": "仅按企业资讯样本的标题完全一致识别，不等同于事件级去重"},
         {"key": "related_enterprises", "title": "关联共现企业", "kind": "table",
-         "note": "企业资讯中高频共现的关联实体（来源：relatedEnterprises，已排除自身）",
+         "note": "企业资讯样本中高频共现的关联实体（仅按全/半角括号与空白差异排除主体自身；其他名称不合并；最多展示前 15 个）",
          "columns": [("企业名称", "企业名称"), ("类型", "类型"), ("共现次数", "共现次数")]},
         {"key": "industry_news", "title": "全文检索资讯", "kind": "table",
-         "note": f"命中 {industry_total if industry_total is not None else '未返回总数'} 条（information_search 全文检索）",
+         "note": f"命中 {industry_total if industry_total is not None else '未返回总数'} 条（全文检索口径，非企业全量）",
          "columns": [("标题", "标题"), ("来源", "来源"), ("发布时间", "发布时间"), ("情感", "情感"), ("链接", "链接"), ("简介", "简介")]},
         {"key": "topic_news", "title": "资讯主题跟踪", "kind": "table",
-         "note": f"命中 {topic_total if topic_total is not None else '未返回总数'} 条（与全文检索同源同参，复用同一批已付费数据）",
+         "note": f"命中 {topic_total if topic_total is not None else '未返回总数'} 条（与全文检索同源同参，复用同一批检索结果）",
          "columns": [("标题", "标题"), ("来源", "来源"), ("发布时间", "发布时间"), ("情感", "情感"), ("链接", "链接"), ("简介", "简介")]},
     ]
 
@@ -499,6 +530,7 @@ def build_core_analysis(
         "sentiment_dist": sentiment_dist_rows,
         "sentiment_trend": trend_rows,
         "company_news": company_rows,
+        "repost_summary": repost_kv,
         "related_enterprises": related_rows,
         "industry_news": industry_rows,
         "topic_news": topic_rows,
@@ -540,34 +572,72 @@ def _sentiment_ratio(stats_kv: Mapping[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _trend_series_analysis(rows: Sequence[Mapping[str, Any]], value_key: str) -> Dict[str, Any]:
-    """Direction/peak/YoY for a single sentiment series across months."""
-    nums = []
+def _month_index(value: Any) -> Optional[int]:
+    text = _text(value)
+    if len(text) < 7 or text[4] not in "-/":
+        return None
+    try:
+        return int(text[:4]) * 12 + int(text[5:7]) - 1
+    except (TypeError, ValueError):
+        return None
+
+
+def _trend_series_analysis(rows: Sequence[Mapping[str, Any]], value_key: str, as_of_month: Optional[int] = None) -> Dict[str, Any]:
+    """Direction/peak for a monthly series, with defensible data-quality guards.
+
+    Drops the current partial month, requires >=3 data months and >=5 items in
+    each of the last two months, and skips series whose latest data is more
+    than 2 months old. Non-consecutive months are labeled as a comparison with
+    the previous available month, not as month-over-month change.
+    """
+    points: List[tuple[Any, float, Optional[int]]] = []
     for r in rows:
         try:
-            nums.append(float(str(r.get(value_key, 0)).replace(",", "")))
+            n = float(str(r.get(value_key, 0)).replace(",", ""))
         except (TypeError, ValueError):
-            nums.append(0.0)
-    if not nums:
+            n = 0.0
+        points.append((r.get("周期/月份", "-"), n, _month_index(r.get("周期/月份"))))
+    if not points:
         return {}
-    peak_idx = max(range(len(nums)), key=lambda i: nums[i])
-    direction = "持平"
+
+    partial_period = None
+    if as_of_month is not None:
+        complete = [p for p in points if p[2] != as_of_month]
+        if len(complete) >= 2 and len(complete) < len(points):
+            partial_period = _text(points[-1][0])
+            points = complete
+    if len(points) < 3:
+        return {"insufficient": "有数据的月份不足 3 期，未作趋势研判", "partial_period": partial_period}
+
+    last_period, last_n, last_idx = points[-1]
+    prev_period, prev_n, prev_idx = points[-2]
+    if as_of_month is not None and last_idx is not None and last_idx < as_of_month - 2:
+        return {"insufficient": f"最新数据止于 {_text(last_period)}，距报告期超过 2 个月，不作近月趋势研判", "partial_period": partial_period}
+    if min(last_n, prev_n) < 5:
+        return {"insufficient": "近两个有数据月份数量过少（<5 条/月），未作趋势研判", "partial_period": partial_period}
+
+    peak_idx = max(range(len(points)), key=lambda i: points[i][1])
+    pct = (last_n - prev_n) / prev_n * 100 if prev_n > 0 else 0.0
+    direction = "基本持平"
     yoy = ""
-    if len(nums) >= 2:
-        last, prev = nums[-1], nums[-2]
-        if prev > 0:
-            pct = (last - prev) / prev * 100
-            if pct > 5:
-                direction = f"上升 {pct:.0f}%"
-            elif pct < -5:
-                direction = f"下降 {abs(pct):.0f}%"
-            yoy = f"环比 {pct:+.0f}%"
-        elif last > 0 and prev == 0:
-            direction = "由零转正"
-    return {"peak_period": rows[peak_idx].get("周期/月份", "-"), "peak_value": nums[peak_idx], "direction": direction, "yoy": yoy, "last": nums[-1]}
+    if abs(pct) > 5:
+        direction = f"{'上升' if pct > 0 else '下降'} {abs(pct):.0f}%"
+        compare = "环比" if (last_idx is not None and prev_idx is not None and last_idx - prev_idx == 1) else "较上一有数据月份"
+        verb = "上升" if pct > 0 else "下降"
+        yoy = f"{compare}{verb} {abs(pct):.0f}%"
+    return {
+        "peak_period": _text(points[peak_idx][0]),
+        "peak_value": points[peak_idx][1],
+        "direction": direction,
+        "yoy": yoy,
+        "last": last_n,
+        "compare_period": _text(last_period),
+        "base_period": _text(prev_period),
+        "partial_period": partial_period,
+    }
 
 
-def build_insights(subject: Mapping[str, Any], core: Mapping[str, Any], metrics: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+def build_insights(subject: Mapping[str, Any], core: Mapping[str, Any], metrics: Sequence[Mapping[str, Any]], as_of_month: Optional[int] = None) -> List[Dict[str, Any]]:
     insights: List[Dict[str, Any]] = []
     metric_map = {m["label"]: str(m["value"]) for m in metrics}
     stats_kv = core.get("company_news_statistics") or {}
@@ -601,22 +671,24 @@ def build_insights(subject: Mapping[str, Any], core: Mapping[str, Any], metrics:
                 except (TypeError, ValueError):
                     pass
             total_series.append({"周期/月份": r.get("周期/月份", "-"), "数量": tot})
-        ta = _trend_series_analysis(total_series, "数量")
-        if ta and ta.get("direction") != "持平":
+        ta = _trend_series_analysis(total_series, "数量", as_of_month)
+        if ta and not ta.get("insufficient") and ta.get("direction") != "基本持平":
+            extra = f"；{ta['partial_period']} 为不完整月份，未纳入比较" if ta.get("partial_period") else ""
             insights.append({
-                "feature": "资讯声量趋势",
-                "evidence": f"声量峰值出现在“{ta['peak_period']}”（{ta['peak_value']:.0f} 条），近月{ta['direction']}，{ta.get('yoy', '')}。",
-                "interpretation": "声量上升反映关注度走强（可能伴随产品发布/事件营销）；下降则可能是话题冷却或传播收尾。",
+                "feature": "资讯声量月度变化",
+                "evidence": f"声量峰值出现在“{ta['peak_period']}”（{ta['peak_value']:.0f} 条）；{ta['compare_period']} 与 {ta['base_period']} 相比，{ta.get('yoy') or ta['direction']}{extra}。",
+                "interpretation": "该变化仅描述上游返回的月度样本条数，样本量小时波动很大；不能单独解释为关注度上升或话题冷却。",
             })
 
     # 4. 负面趋势研判（负面声量走向）
     if trend_rows and any(_to_float(r.get("负面")) for r in trend_rows):
-        nta = _trend_series_analysis(trend_rows, "负面")
-        if nta and nta.get("peak_value", 0) > 0:
+        nta = _trend_series_analysis(trend_rows, "负面", as_of_month)
+        if nta and not nta.get("insufficient") and nta.get("peak_value", 0) > 0:
+            extra = f"；{nta['partial_period']} 为不完整月份，未纳入比较" if nta.get("partial_period") else ""
             insights.append({
-                "feature": "负面舆情走向",
-                "evidence": f"负面峰值出现在“{nta['peak_period']}”（{nta['peak_value']:.0f} 条），近月{nta['direction']}。",
-                "interpretation": "负面声量变化仅描述样本数量；下降原因无法由数量判断，仍需核验事件、时间窗口与转载去重。",
+                "feature": "负面标签月度变化",
+                "evidence": f"负面标签峰值出现在“{nta['peak_period']}”（{nta['peak_value']:.0f} 条）；{nta['compare_period']} 与 {nta['base_period']} 相比，{nta.get('yoy') or nta['direction']}{extra}。",
+                "interpretation": "负面条数变化仅描述上游情感标签的月度样本；下降原因无法由数量判断，仍需核验事件、时间窗口与转载去重。",
             })
 
     # 企业资讯与全文检索使用不同产品、查询范围和时间口径，禁止相除派生份额。
@@ -633,17 +705,22 @@ def build_insights(subject: Mapping[str, Any], core: Mapping[str, Any], metrics:
         top = related_rows[:3]
         names = "、".join(f"{r.get('企业名称', '-')}" for r in top)
         total_co = sum(_to_float(r.get("共现次数")) for r in related_rows)
+        scope = f"高频共现实体（最多展示 {len(related_rows)} 个）" if len(related_rows) >= 15 else f"样本内共现实体 {len(related_rows)} 个"
         insights.append({
             "feature": "关联共现企业",
-            "evidence": f"共现实体 {len(related_rows)} 个，Top3：{names}（合计共现 {int(total_co)} 次）。",
-            "interpretation": "共现仅表示实体出现在同一资讯样本中，不能据此认定合作、竞争或上下游关系。",
+            "evidence": f"{scope}，Top3：{names}（这些展示实体合计共现 {int(total_co)} 次）。",
+            "interpretation": "共现仅表示实体出现在同一资讯样本中，样本并非全量，不能据此认定合作、竞争或上下游关系。",
         })
 
     if any(core.get(key) for key in ("company_news", "industry_news", "topic_news")):
+        repost = core.get("repost_summary") or {}
+        duplicate_clause = ""
+        if repost:
+            duplicate_clause = f"企业资讯样本 {repost.get('样本条数', '-')} 条中，标题完全一致的重复记录 {repost.get('标题完全一致的重复记录', 0)} 条。"
         insights.append({
             "feature": "事件计数与跨产品重叠限制",
-            "evidence": "全文检索、主题跟踪与企业资讯按各自产品口径返回记录，可能包含同题转载或跨产品相同记录。",
-            "interpretation": "记录数不等于独立事件数，跨产品数量不可相加；报告未执行跨产品或事件级去重。",
+            "evidence": duplicate_clause + "全文检索、主题跟踪与企业资讯按各自产品口径返回记录，可能包含同题转载或跨产品相同记录。",
+            "interpretation": "记录数不等于独立事件数，跨产品数量不可相加；仅识别了标题完全一致的重复，近义标题与跨产品同事件未合并。",
         })
 
     if not insights:
@@ -707,39 +784,52 @@ def build_dry_run_payload(raw: str, keyword_type: str, opts: Mapping[str, Any]) 
         subject["resolve_reason"] = subject_sample["resolve_reason"]
     core = sample.get("core_analysis") or {}
     metrics = sample.get("metrics") or []
-    return _assemble(subject, core, metrics, dry_run=True, opts=opts)
+    return apply_content_review(_assemble(subject, core, metrics, dry_run=True, opts=opts))
 
 
 # --------------------------------------------------------------------------- #
 # Assembly
 # --------------------------------------------------------------------------- #
 
+def _content_quality_report(core: Mapping[str, Any]) -> Dict[str, Any]:
+    """Section-fill rate from final declared sections and actual bodies.
+
+    0 is populated; only None/""/[]/{} count as empty. Not an accuracy score.
+    """
+    ca = core if isinstance(core, dict) else {}
+    sections = [s for s in (ca.get("sections") or []) if isinstance(s, dict) and s.get("key")]
+
+    def filled(value: Any) -> bool:
+        return value is not None and value != "" and value != [] and value != {}
+
+    if sections:
+        total = len(sections)
+        populated = sum(1 for spec in sections if filled(ca.get(spec["key"])))
+    else:
+        keys = [k for k in ca if k != "sections"]
+        total = max(1, len(keys))
+        populated = sum(1 for key in keys if filled(ca.get(key)))
+    return {
+        "total_sections": total,
+        "populated_sections": populated,
+        "empty_sections": total - populated,
+        "coverage_pct": round(populated / max(1, total) * 100),
+    }
+
+
 def _assemble(subject: Mapping[str, Any], core: Mapping[str, Any], metrics: Sequence[Mapping[str, Any]], *, dry_run: bool, opts: Mapping[str, Any]) -> Dict[str, Any]:
     abstract = build_abstract(subject, core, metrics)
     records = build_records(core)
-    insights = build_insights(subject, core, metrics)
-    # Quality gate: count populated core-analysis sections.
-    ca = core if isinstance(core, dict) else {}
-    secs = ca.get("sections", [])
-    if secs:
-        total_secs = len(secs)
-        populated = sum(1 for s in secs if isinstance(s, dict) and _has_evidence(ca.get(s.get("key"))))
-    else:
-        total_secs = max(1, len([k for k in ca if k != "sections"]))
-        populated = sum(1 for k in ca if k != "sections" and _has_evidence(ca.get(k)))
-    quality_report = {
-        "total_sections": total_secs,
-        "populated_sections": populated,
-        "empty_sections": total_secs - populated,
-        "coverage_pct": round(populated / max(1, total_secs) * 100),
-    }
-    if populated == 0:
+    generated_at = dt.datetime.now().astimezone().isoformat(timespec="seconds")
+    insights = build_insights(subject, core, metrics, _month_index(generated_at))
+    quality_report = _content_quality_report(core)
+    if quality_report["populated_sections"] == 0:
         import sys
         print("⚠️ 质量门禁警告: 所有核心分析维度均无数据", file=sys.stderr)
         target = subject.get("enterprise") or subject.get("match_raw") or "目标对象"
         abstract = f"本次对“{target}”的查询未获得有效数据；报告不据此生成资讯规模、情感或行业比较结论。请检查主体/主题、筛选条件及上游调用状态。"
     title = f"{subject.get('enterprise') or '目标对象'} 资讯大数据报告"
-    return {
+    report = {
         "report_type": REPORT_TYPE,
         "title": title,
         "banner": REPORT_BANNER,
@@ -755,11 +845,105 @@ def _assemble(subject: Mapping[str, Any], core: Mapping[str, Any], metrics: Sequ
         "data_source": {
             "mcp_server": "information-mcp-server",
             "products": requested_products(subject),
-            "generated_at": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
+            "generated_at": generated_at,
             "dry_run": dry_run,
             "quality_report": quality_report,
         },
     }
+    return report
+
+
+def _information_repost_summary(core: Mapping[str, Any]) -> Dict[str, Any]:
+    rows = [r for r in (core.get("company_news") or []) if isinstance(r, dict)]
+    title_counts: Dict[str, int] = {}
+    for row in rows:
+        title = _text(row.get("标题"))
+        if title and title != "-":
+            title_counts[title] = title_counts.get(title, 0) + 1
+    return {
+        "样本条数": len(rows),
+        "标题完全一致的重复记录": sum(n - 1 for n in title_counts.values() if n > 1),
+        "去重后标题数": len(title_counts),
+        "说明": "仅按标题完全一致识别疑似转载/重复收录；近义标题、改标题转载及同一事件的多次进展未合并。",
+    }
+
+
+def apply_content_review(report: Mapping[str, Any]) -> Dict[str, Any]:
+    """Rebuild information narrative content from an existing payload.
+
+    Pure/in-memory. Drops sample-scope metrics, adds an exact-title repost
+    summary for the retained company-news sample, translates enum labels,
+    normalizes related-entity types, rebuilds trend insights with partial-month
+    / recency / low-volume guards, and refreshes abstract/executive_summary.
+    """
+    out = copy.deepcopy(dict(report))
+    metrics: List[Dict[str, Any]] = []
+    for metric in out.get("metrics") or []:
+        if not isinstance(metric, dict) or metric.get("label") in SAMPLE_METRIC_LABELS:
+            continue
+        item = dict(metric)
+        if item.get("label") in ("正面资讯", "负面资讯", "中性资讯"):
+            item["hint"] = f"{item['label'].replace('资讯', '')}情感模型标签条数（未逐条人工核验）"
+            if item.get("delta", "").startswith("占比"):
+                item["delta"] = "标签" + item["delta"]
+        metrics.append(item)
+    out["metrics"] = metrics
+
+    core = out.setdefault("core_analysis", {})
+    if not core.get("repost_summary"):
+        core["repost_summary"] = _information_repost_summary(core)
+    sections = core.get("sections") or []
+    if not any(isinstance(s, dict) and s.get("key") == "repost_summary" for s in sections):
+        insert_at = next((i for i, s in enumerate(sections) if isinstance(s, dict) and s.get("key") == "company_news"), len(sections))
+        sections.insert(insert_at + 1, {"key": "repost_summary", "title": "重复与转载提示", "kind": "kv", "note": "仅按企业资讯样本的标题完全一致识别，不等同于事件级去重"})
+        core["sections"] = sections
+    for spec in sections:
+        if not isinstance(spec, dict):
+            continue
+        key = spec.get("key")
+        note = str(spec.get("note") or "")
+        if "sentimentLabel" in note:
+            spec["note"] = re.sub(r"；?sentimentLabel=\d+（[^）]*）", "", note)
+        if key == "related_enterprises":
+            spec["note"] = "企业资讯样本中高频共现的关联实体（仅按全/半角括号与空白差异排除主体自身；其他名称不合并；最多展示前 15 个）"
+        elif key == "industry_news":
+            spec["note"] = re.sub(r"（information_search[^）]*）", "（全文检索口径，非企业全量）", note)
+        elif key == "topic_news":
+            spec["note"] = note.replace("复用同一批已付费数据", "复用同一批检索结果").replace("复用同一批已付费结果", "复用同一批检索结果")
+
+    subject = out.get("subject") or {}
+    subject_key = _self_entity_key(subject.get("enterprise") or "")
+    deduped_related: Dict[str, Dict[str, Any]] = {}
+    for row in core.get("related_enterprises") or []:
+        if not isinstance(row, dict):
+            continue
+        name = _text(row.get("企业名称"))
+        if not name or (subject_key and _self_entity_key(name) == subject_key):
+            continue
+        # Exact raw name only; no speculative merging of legal entities.
+        entry = deduped_related.setdefault(name, {
+            "企业名称": name,
+            "类型": _entity_type_text(row.get("类型")),
+            "共现次数": 0,
+        })
+        entry["共现次数"] += int(_to_float(row.get("共现次数")))
+    related_rows = sorted(deduped_related.values(), key=lambda r: r["共现次数"], reverse=True)[:15]
+    core["related_enterprises"] = related_rows
+    stats_kv = core.get("company_news_statistics") or {}
+    if stats_kv.get("情感类别"):
+        reverse_map = {"positive": "正面", "negative": "负面", "neutral": "中性", "unknown": "未知"}
+        stats_kv["情感类别"] = "、".join(reverse_map.get(str(t).strip().lower(), _text(t)) for t in str(stats_kv["情感类别"]).replace("，", "、").replace(",", "、").split("、") if t)
+
+    source = out.get("data_source") or {}
+    insights = build_insights(subject, core, metrics, _month_index(source.get("generated_at")))
+    out["insights"] = insights
+    abstract = build_abstract(subject, core, metrics)
+    out["abstract"] = abstract
+    out["summary"] = abstract
+    out["executive_summary"] = [item["interpretation"] for item in insights][:5] or [abstract[:120]]
+    out["caliber"] = build_caliber(subject, {"sentiment": subject.get("sentiment_label"), "pub_start": subject.get("pub_date_begin"), "pub_end": subject.get("pub_date_end")})
+    out.setdefault("data_source", {})["quality_report"] = _content_quality_report(core)
+    return out
 
 
 def _search_args_for(keyword: str, opts: Mapping[str, Any], page_size: int) -> Dict[str, Any]:
@@ -832,10 +1016,12 @@ def build_payload(raw: str, keyword_type: str, opts: Mapping[str, Any], max_page
     core_opts = {**opts, "enterprise": enterprise}
     core = build_core_analysis(company_news, monitor_stats, industry_news, topic_news, core_opts)
     metrics = build_metrics(company_total, industry_total, topic_total, monitor_stats)
-    _derive_core_metrics(metrics, core if isinstance(core, dict) else {})
     opts_full = {**opts, "view": monitor_view}
-    report = _assemble(subject, core, metrics, dry_run=False, opts=opts_full)
-    report = _attach_call_status(report, {"企业资讯": company_news, "企业资讯监控": monitor_stats, "资讯全文检索": industry_news, "资讯主题跟踪": topic_news})
+    report = _attach_call_status(
+        _assemble(subject, core, metrics, dry_run=False, opts=opts_full),
+        {"企业资讯": company_news, "企业资讯监控": monitor_stats, "资讯全文检索": industry_news, "资讯主题跟踪": topic_news},
+    )
+    report = apply_content_review(report)
     return attach_pagination(report, {"企业资讯": company_news, "资讯全文检索": industry_news, "资讯主题跟踪": topic_news})
 
 

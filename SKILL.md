@@ -26,6 +26,15 @@ description: Use for generating a professional information big-data report (资�
 - 报告所有章节标题、指标卡标签必须用中文；`core_analysis.sections` 的 `title` 字段必须中文，不可显示英文 key（如 `holders`、`investments`）。
 - 指标值必须可读化：金额格式为"X 亿/万 + 币种"，地址拼接省市区，比率显示百分号。详见 `references/report-output.md` 的「数据格式约束」。
 
+## 内容整理与交付审校（强制）
+
+1. **口径先分层**：企业资讯、独立全文检索、主题跟踪是不同产品与查询范围，记录数只能并列披露，不能相加、相除或互相替代；主题跟踪与全文检索同源复用时须说明。
+2. **情感是上游标签**：正面/负面/中性/未知由模型给出，未逐条人工核验；不得由标题或标签推断声誉、经营影响或因果关系，不得输出无证据的应对建议。
+3. **样本与全量分开**：企业资讯明细只代表当前页；关联共现实体、媒体来源、状态分布均写“样本内/最多展示 N 个”。主体自身仅按全/半角括号与空白差异排除，不得把主体算作关联企业；其他实体名称不得因标点或近似而合并。
+4. **转载与事件分开**：仅标题完全一致的记录可标“疑似重复”；近义标题、改标题转载、同一事件多篇进展不自动合并，保留原列表供核对。
+5. **趋势只比完整月份**：当前月为不完整月份，不参与环比；近两月任一 <5 条或最新数据距报告期超过 2 个月时，不写“近月升降”。枚举值（如 `enterprise`、`positive`）必须转为中文；未知值保留原文并标注。
+6. 原始标题、来源、时间、链接、标签保留；正常生成与离线修订均调用 `apply_content_review(report)`，不新增查询。
+
 ## MCP 服务入口
 
 - MCP 服务当前名称：资讯热点跟踪（连接仍使用原服务目录标识）。
@@ -70,6 +79,8 @@ description: Use for generating a professional information big-data report (资�
 3. **组装统一报告**：核心分析含企业资讯统计（KV）、舆情情感趋势（表）、企业资讯明细（表）、行业资讯（表）、资讯主题跟踪（表）。
 4. **渲染三件套**：`compose_report.py --enterprise ... --output ... --report-output ...` 直接产出 JSON + HTML + Markdown；或 `render_report.py --input ... --output ...` 重渲染。
 5. **返回路径**：返回 JSON、HTML、Markdown 文件路径，以及企业全称映射与数据口径（含情感过滤与发布区间）。
+
+- **渲染前置检查**：执行会产出含图表 HTML / PDF 的报告命令前，先验证 `node --version` 与本 skill 自带 `assets/vendor/echarts.min.js` 存在；内嵌静态 SVG 的生成需要 Node.js（推荐当前 LTS，无需 npm 包），缺失时报告生成明确报错。查看已生成的 HTML 与 Markdown 输出不需要 Node。
 
 ## 脚本速查
 
