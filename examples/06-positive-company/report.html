@@ -37,6 +37,7 @@
     .biz-metric .m-tag.t-down { color:#dc2626; }
     .biz-metric .m-tag.t-neutral { color:#6366f1; }
     .biz-metric .m-value { color:#0b3768; font-size:26px; line-height:1.1; font-weight:900; letter-spacing:-.02em; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; margin-top:auto; }
+    .biz-metric .m-hint { color:#64748b; font-size:11px; line-height:1.5; margin-top:6px; text-align:left; }
     .biz-metric .m-value .m-tag.t-up { color:#16a34a; }
     .biz-metric .m-value .m-tag.t-down { color:#dc2626; }
     .biz-metric .m-value .m-tag.t-neutral { color:#6366f1; }
@@ -165,7 +166,57 @@
     .glossary-term { display:flex; align-items:flex-start; padding:12px 14px; background:#f1f6fb; color:#0b5ca8; font-size:13px; font-weight:800; border-right:3px solid #0b5ca8; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
     .glossary-def { padding:12px 16px; color:#334155; font-size:13px; line-height:1.7; }
   </style>
-  <script>
+  <style>
+.chart-frame{position:relative;width:100%;height:300px;}
+.chart-box-gauge .chart-frame{height:240px;}
+.chart-static{position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;}
+.chart-static svg{display:block;width:100%;height:100%;}
+.chart-frame .chart-canvas{position:absolute;top:0;left:0;width:100%;height:100% !important;visibility:hidden;z-index:1;}
+.chart-frame[data-chart-state="ready"] .chart-canvas{visibility:visible;}
+.chart-frame[data-chart-state="ready"] .chart-static{visibility:hidden;}
+.chart-frame .chart-status{position:absolute;left:0;right:0;bottom:0;margin:0;padding:2px 8px;font-size:11px;color:#64748b;text-align:center;background:rgba(255,255,255,.88);z-index:2;}
+.chart-frame .chart-status:empty{display:none;}
+@media print{
+  .chart-frame{height:auto;overflow:visible;}
+  .chart-frame .chart-canvas{display:none !important;visibility:hidden;}
+  .chart-frame .chart-static{position:static;display:block !important;visibility:visible !important;}
+  .chart-frame .chart-status{display:none;}
+  .chart-static svg{height:auto;}
+}
+</style>
+<script>function handaasChartOption(spec){
+  if(!spec || ['line','bar','pie','gauge','radar'].indexOf(spec.type)<0){return null;}
+  var PALETTE=['#0b5ca8','#0284c7','#0b3768','#d97706','#059669','#dc2626','#7c3aed','#db2777','#0891b2','#65a30d'];
+  var FONTS="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif";
+  var opt={animation:false,color:PALETTE,tooltip:{trigger: spec.type==='pie'?'item':'axis'},textStyle:{fontFamily:FONTS,fontSize:12,color:'#334155'},grid:{left:48,right:24,top:30,bottom:40},legend:{top:0,textStyle:{fontSize:11}}};
+  if(spec.type==='line'){
+    opt.xAxis={type:'category',data:spec.x,axisLabel:{fontSize:11,interval:0,rotate: spec.x && spec.x.length>6?35:0}};
+    opt.yAxis={type:'value'};
+    opt.series=spec.series.map(function(s){return{name:s.name,type:'line',smooth:true,areaStyle: spec.area?{opacity:0.18}:undefined,stack: spec.stack?s.name:undefined,data:s.data,label:{show:true,position:'top',fontSize:11}};});
+    if(spec.stack){opt.tooltip={trigger:'axis'};}
+  }else if(spec.type==='bar'){
+    var horiz=spec.orient==='h';
+    var cats=spec.names, vals=spec.values;
+    if(horiz){opt.yAxis={type:'category',data:cats,axisLabel:{fontSize:11}};opt.xAxis={type:'value'};opt.grid={left:120,right:30,top:20,bottom:30};}
+    else{opt.xAxis={type:'category',data:cats,axisLabel:{fontSize:11,interval:0,rotate: cats&&cats.length>6?35:0}};opt.yAxis={type:'value'};}
+    opt.series=[{type:'bar',data:vals,itemStyle:{color:PALETTE[0]},label:{show:true,position: horiz?'right':'top',fontSize:11},barMaxWidth:42}];
+    opt.tooltip={trigger:'axis',axisPointer:{type:'shadow'}};
+  }else if(spec.type==='pie'){
+    opt.series=[{type:'pie',radius: spec.donut?['42%','68%']:'68%',center:['50%','55%'],data:spec.data,itemStyle:{borderColor:'#fff',borderWidth:2},label:{fontSize:11,formatter:'{b}: {c} ({d}%)'}}];
+    opt.legend={bottom:0,textStyle:{fontSize:11}};
+    opt.tooltip={trigger:'item',formatter:'{b}: {c} ({d}%)'};
+  }else if(spec.type==='gauge'){
+    var v=spec.value, mx=spec.max||100;
+    var col=v/mx>0.66?'#dc2626':(v/mx>0.33?'#d97706':'#059669');
+    opt.series=[{type:'gauge',min:0,max:mx,progress:{show:true,width:14,itemStyle:{color:col}},axisLine:{lineStyle:{width:14}},axisTick:{show:false},splitLine:{length:8,lineStyle:{color:'#fff'}},pointer:{width:5},detail:{valueAnimation:false,formatter:'{value}',fontSize:28,color:col,offsetCenter:[0,'30%']},data:[{value:v,name:spec.level||''}],title:{fontSize:13,color:'#475569',offsetCenter:[0,'62%']}}];
+  }else if(spec.type==='radar'){
+    opt.radar={indicator:spec.indicators,radius:'62%',axisName:{color:'#475569',fontSize:11},splitArea:{areaStyle:{color:['#f8fbff','#eef4fb']}}};
+    opt.series=[{type:'radar',areaStyle:{opacity:0.18},data:spec.series}];
+  }
+  return opt;
+}
+</script>
+<script>
 /*
 * Licensed to the Apache Software Foundation (ASF) under one
 * or more contributor license agreements.  See the NOTICE file
@@ -218,8 +269,10 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
   var status=window.__handaas_chart_status={state:'waiting',total:0,ready:0,failed:0};
   var timer=null, retries=0, MAX_RETRIES=100;
   var layoutRetries=0, MAX_LAYOUT_RETRIES=50;
-  var PALETTE=['#0b5ca8','#0284c7','#0b3768','#d97706','#059669','#dc2626','#7c3aed','#db2777','#0891b2','#65a30d'];
-  var FONTS='-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
+  var MSG_LOADING='图表库正在加载，数据明细仍可查看。';
+  var MSG_MISSING='图表交互不可用，已保留静态图表，数据明细仍可查看。';
+  var MSG_LAYOUT='图表等待布局完成后渲染，数据明细仍可查看。';
+  var MSG_FAILED='图表交互初始化失败，已保留静态图表，数据明细仍可查看。';
   function summarize(nodes){
     status.total=nodes.length;status.ready=0;status.failed=0;
     nodes.forEach(function(el){
@@ -229,18 +282,40 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
     status.state=status.ready===status.total?'ready':
       (status.ready+status.failed===status.total?(status.ready?'degraded':'error'):'waiting');
   }
+  function frameOf(el){
+    var p=el.parentElement;
+    if(p&&(' '+p.className+' ').indexOf(' chart-frame ')>-1){return p;}
+    return null;
+  }
+  function setStatus(el,msg){
+    var f=frameOf(el);
+    if(f){
+      var p=f.querySelector('.chart-status');
+      if(p){p.textContent=msg;}
+    }else{
+      el.textContent=msg;
+    }
+  }
   function raf(fn){if(window.requestAnimationFrame){window.requestAnimationFrame(fn);}else{fn();}}
+  function hasGeometry(chart,el){
+    if(!chart || chart.getWidth()<2 || chart.getHeight()<2){return false;}
+    var svg=el.querySelector('svg');
+    if(!svg){return false;}
+    return !!svg.querySelector('path,rect,circle,line,text,polygon,polyline');
+  }
   function boot(){
     if(document.readyState==='loading'){return;}
     var nodes=document.querySelectorAll('.chart-canvas');
     if(!nodes.length){summarize(nodes);return;}
-    if(!window.echarts || typeof window.echarts.init!=='function'){
+    if(!window.echarts || typeof window.echarts.init!=='function' || typeof window.handaasChartOption!=='function'){
       var exhausted=retries>=MAX_RETRIES;
       nodes.forEach(function(el){
         if(el.__handaas_chart_ready){return;}
         el.__handaas_dependency_error=true;
         el.setAttribute('data-chart-state',exhausted?'error':'waiting');
-        el.textContent=exhausted?'图表库加载失败或不可用，请查看数据明细或重新生成离线报告。':'图表库正在加载，数据明细仍可查看。';
+        setStatus(el,exhausted?MSG_MISSING:MSG_LOADING);
+        var f=frameOf(el);
+        if(f){f.setAttribute('data-chart-state',exhausted?'error':'static');}
       });
       summarize(nodes);
       if(!exhausted && timer===null){
@@ -253,6 +328,7 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
     var pendingLayout=0;
     nodes.forEach(function(el){
       if(el.__handaas_chart_ready){return;}
+      var f=frameOf(el);
       if(el.getAttribute('data-chart-state')==='error' && !el.__handaas_dependency_error){return;}
       if(window.ResizeObserver && !el.__handaas_resize_observer){
         el.__handaas_resize_observer=new ResizeObserver(function(){
@@ -264,7 +340,8 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
       }
       if((el.getClientRects && el.getClientRects().length===0) || el.clientWidth<2 || el.clientHeight<2){
         el.setAttribute('data-chart-state','waiting');
-        el.textContent='图表等待布局完成后渲染，数据明细仍可查看。';
+        setStatus(el,MSG_LAYOUT);
+        if(f){f.setAttribute('data-chart-state','static');}
         pendingLayout++;
         return;
       }
@@ -274,46 +351,36 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
         if(!raw){throw new Error('Missing chart configuration');}
         // getAttribute already decodes HTML entities; a second decode corrupts labels.
         var spec=JSON.parse(raw);
-        if(['line','bar','pie','gauge','radar'].indexOf(spec.type)<0){throw new Error('Unsupported chart type');}
+        var opt=window.handaasChartOption(spec);
+        if(!opt){throw new Error('Unsupported chart type');}
         el.textContent='';
         chart=window.echarts.init(el,null,{renderer:'svg'});
-      var opt={color:PALETTE,tooltip:{trigger: spec.type==='pie'?'item':'axis'},textStyle:{fontFamily:FONTS,fontSize:12,color:'#334155'},grid:{left:48,right:24,top:30,bottom:40},legend:{top:0,textStyle:{fontSize:11}}};
-      if(spec.type==='line'){
-        opt.xAxis={type:'category',data:spec.x,axisLabel:{fontSize:11,interval:0,rotate: spec.x && spec.x.length>6?35:0}};
-        opt.yAxis={type:'value'};
-        opt.series=spec.series.map(function(s){return{name:s.name,type:'line',smooth:true,areaStyle: spec.area?{opacity:0.18}:undefined,stack: spec.stack?s.name:undefined,data:s.data,label:{show:true,position:'top',fontSize:11}};});
-        if(spec.stack){opt.tooltip={trigger:'axis'};}
-      }else if(spec.type==='bar'){
-        var horiz=spec.orient==='h';
-        var cats=spec.names, vals=spec.values;
-        if(horiz){opt.yAxis={type:'category',data:cats,axisLabel:{fontSize:11}};opt.xAxis={type:'value'};opt.grid={left:120,right:30,top:20,bottom:30};}
-        else{opt.xAxis={type:'category',data:cats,axisLabel:{fontSize:11,interval:0,rotate: cats&&cats.length>6?35:0}};opt.yAxis={type:'value'};}
-        opt.series=[{type:'bar',data:vals,itemStyle:{color:PALETTE[0]},label:{show:true,position: horiz?'right':'top',fontSize:11},barMaxWidth:42}];
-        opt.tooltip={trigger:'axis',axisPointer:{type:'shadow'}};
-      }else if(spec.type==='pie'){
-        opt.series=[{type:'pie',radius: spec.donut?['42%','68%']:'68%',center:['50%','55%'],data:spec.data,itemStyle:{borderColor:'#fff',borderWidth:2},label:{fontSize:11,formatter:'{b}: {c} ({d}%)'}}];
-        opt.legend={bottom:0,textStyle:{fontSize:11}};
-        opt.tooltip={trigger:'item',formatter:'{b}: {c} ({d}%)'};
-      }else if(spec.type==='gauge'){
-        var v=spec.value, mx=spec.max||100;
-        var col=v/mx>0.66?'#dc2626':(v/mx>0.33?'#d97706':'#059669');
-        opt.series=[{type:'gauge',min:0,max:mx,progress:{show:true,width:14,itemStyle:{color:col}},axisLine:{lineStyle:{width:14}},axisTick:{show:false},splitLine:{length:8,lineStyle:{color:'#fff'}},pointer:{width:5},detail:{valueAnimation:true,formatter:'{value}',fontSize:28,color:col,offsetCenter:[0,'30%']},data:[{value:v,name:spec.level||''}],title:{fontSize:13,color:'#475569',offsetCenter:[0,'62%']}}];
-      }else if(spec.type==='radar'){
-        opt.radar={indicator:spec.indicators,radius:'62%',axisName:{color:'#475569',fontSize:11},splitArea:{areaStyle:{color:['#f8fbff','#eef4fb']}}};
-        opt.series=[{type:'radar',areaStyle:{opacity:0.18},data:spec.series}];
-      }
         chart.setOption(opt);
+        // Real synchronous flush: setOption already flushes internally, but
+        // drive the zrender painter once more before the geometry gate. Any
+        // throw here falls into catch and keeps the static SVG.
+        var zr=chart.getZr();
+        if(zr && typeof zr.flush==='function'){zr.flush();}
+        // Never reveal the interactive layer (and never hide the static SVG)
+        // before real SVG geometry exists on the canvas overlay.
+        if(!hasGeometry(chart,el)){throw new Error('Empty chart geometry');}
         el.__handaas_chart=chart;
         el.__handaas_chart_ready=true;
         el.__handaas_dependency_error=false;
         el.setAttribute('data-chart-state','ready');
         window.__echarts_instances.push(chart);
+        if(f){
+          f.setAttribute('data-chart-state','ready');
+          var p=f.querySelector('.chart-status');
+          if(p){p.textContent='';}
+        }
         raf(function(){try{chart.resize();}catch(ignored){}});
       }catch(e){
         if(chart && typeof chart.dispose==='function'){try{chart.dispose();}catch(ignored){}}
         el.__handaas_dependency_error=false;
         el.setAttribute('data-chart-state','error');
-        el.textContent='图表绘制失败，请查看数据明细。';
+        setStatus(el,MSG_FAILED);
+        if(f){f.setAttribute('data-chart-state','error');}
       }
     });
     summarize(nodes);
@@ -363,7 +430,7 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
         <h1>贵州茅台酒股份有限公司 资讯大数据报告</h1>
         <p class="report-lead">本报告以“贵州茅台酒股份有限公司”为企业查询对象。本次有效数据覆盖：企业资讯情感统计、资讯情感分布、资讯情感趋势、企业资讯明细、关联实体共现、全文检索资讯、主题跟踪资讯。关键指标包括：企业资讯数 776、行业资讯数 8、主题资讯数 8、正面资讯 776、负面资讯 632。各产品记录按自身口径披露，记录数不等于独立事件数，跨产品数量不可相加</p>
         <div class="abstract-box">报告涵盖查询对象、数据总览、核心分析、代表性记录与结构洞察，所有数据均标注口径与来源。</div>
-        <div class="biz-metrics"><div class="biz-metric"><span class="m-name">企业资讯数</span><span class="m-tag"></span><span class="m-value">776</span></div><div class="biz-metric"><span class="m-name">行业资讯数</span><span class="m-tag"></span><span class="m-value">8</span></div><div class="biz-metric"><span class="m-name">主题资讯数</span><span class="m-tag"></span><span class="m-value">8</span></div><div class="biz-metric"><span class="m-name">正面资讯</span><span class="m-tag t-neutral">占比 18%</span><span class="m-value">776</span></div><div class="biz-metric"><span class="m-name">负面资讯</span><span class="m-tag t-neutral">占比 15%</span><span class="m-value">632</span></div><div class="biz-metric"><span class="m-name">中性资讯</span><span class="m-tag t-neutral">占比 67%</span><span class="m-value">2851</span></div><div class="biz-metric"><span class="m-name">正面占比</span><span class="m-tag"></span><span class="m-value">18.1%</span></div><div class="biz-metric"><span class="m-name">舆情监控周期</span><span class="m-tag"></span><span class="m-value">12</span></div><div class="biz-metric"><span class="m-name">资讯来源数</span><span class="m-tag"></span><span class="m-value">6</span></div><div class="biz-metric"><span class="m-name">高频来源</span><span class="m-tag"></span><span class="m-value">证券之星（2篇）</span></div><div class="biz-metric-empty"></div><div class="biz-metric-empty"></div></div>
+        <div class="biz-metrics"><div class="biz-metric"><span class="m-name">企业资讯数</span><span class="m-tag"></span><span class="m-value">776</span><span class="m-hint">企业新闻舆情明细总数</span></div><div class="biz-metric"><span class="m-name">行业资讯数</span><span class="m-tag"></span><span class="m-value">8</span><span class="m-hint">行业资讯命中数</span></div><div class="biz-metric"><span class="m-name">主题资讯数</span><span class="m-tag"></span><span class="m-value">8</span><span class="m-hint">主题跟踪命中数</span></div><div class="biz-metric"><span class="m-name">正面资讯</span><span class="m-tag t-neutral">占比 18%</span><span class="m-value">776</span><span class="m-hint">正面情感资讯数</span></div><div class="biz-metric"><span class="m-name">负面资讯</span><span class="m-tag t-neutral">占比 15%</span><span class="m-value">632</span><span class="m-hint">负面情感资讯数</span></div><div class="biz-metric"><span class="m-name">中性资讯</span><span class="m-tag t-neutral">占比 67%</span><span class="m-value">2851</span><span class="m-hint">中性情感资讯数</span></div><div class="biz-metric"><span class="m-name">正面占比</span><span class="m-tag"></span><span class="m-value">18.1%</span><span class="m-hint">正面资讯占总资讯比例</span></div><div class="biz-metric"><span class="m-name">舆情监控周期</span><span class="m-tag"></span><span class="m-value">12</span><span class="m-hint">有情感数据的月份数</span></div><div class="biz-metric"><span class="m-name">资讯来源数</span><span class="m-tag"></span><span class="m-value">6</span><span class="m-hint">不同媒体/来源数</span></div><div class="biz-metric"><span class="m-name">高频来源</span><span class="m-tag"></span><span class="m-value">证券之星（2篇）</span><span class="m-hint">报道最多的媒体来源</span></div><div class="biz-metric-empty"></div><div class="biz-metric-empty"></div></div>
         <ul class="exec-list"><li>资讯命中量仅描述检索口径内的样本数量，不直接代表品牌影响力或公众关注度。</li><li>情感比例是算法分类结果，应结合原文抽样核验；不能据此直接判定企业声誉健康或风险等级。</li><li>声量上升反映关注度走强（可能伴随产品发布/事件营销）；下降则可能是话题冷却或传播收尾。</li><li>负面声量变化仅描述样本数量；下降原因无法由数量判断，仍需核验事件、时间窗口与转载去重。</li><li>两者来自不同产品与查询口径，仅并列披露，不计算行业份额、增长率或覆盖比例。</li></ul>
         <div class="cover-findings"><h3 class="cover-findings-title">核心发现</h3><div class="cover-findings-grid"><div class="finding-card"><p class="f-label">资讯曝光度</p><p class="f-text">企业资讯命中 776 条。</p></div><div class="finding-card"><p class="f-label">情感结构与净声量</p><p class="f-text">正面 776（18%）、负面 632（15%）、中性 2851；净情感 +3%。</p></div><div class="finding-card"><p class="f-label">资讯声量趋势</p><p class="f-text">声量峰值出现在“2026-08”（12 条），近月下降 92%，环比 -92%。</p></div><div class="finding-card"><p class="f-label">负面舆情走向</p><p class="f-text">负面峰值出现在“2026-08”（8 条），近月下降 100%。</p></div></div></div>
         <div class="cover-dimensions"><span class="dim-label">分析维度</span><div class="dim-tags"><span class="dim-tag">企业资讯统计</span><span class="dim-tag">资讯情感分布</span><span class="dim-tag">舆情情感趋势</span><span class="dim-tag">企业资讯明细</span><span class="dim-tag">关联共现企业</span><span class="dim-tag">全文检索资讯</span><span class="dim-tag">资讯主题跟踪</span></div></div>
@@ -374,10 +441,234 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
   <main class="research-doc">
     <section class="report-page biz-section"><div class="report-topbar"><div class="report-stripe"></div><div class="report-banner">资讯大数据报告</div></div><div class="biz-section-head"><div><h2>报告摘要</h2><p class="biz-section-note">概述分析对象、数据覆盖范围与核心发现。</p></div><span class="biz-tag">Summary</span></div><p class="biz-summary">本报告以“贵州茅台酒股份有限公司”为企业查询对象。本次有效数据覆盖：企业资讯情感统计、资讯情感分布、资讯情感趋势、企业资讯明细、关联实体共现、全文检索资讯、主题跟踪资讯。关键指标包括：企业资讯数 776、行业资讯数 8、主题资讯数 8、正面资讯 776、负面资讯 632。各产品记录按自身口径披露，记录数不等于独立事件数，跨产品数量不可相加</p></section>
     <section class="report-page biz-section"><div class="report-topbar"><div class="report-stripe"></div><div class="report-banner">资讯大数据报告</div></div><div class="biz-section-head"><div><h2>查询对象与口径</h2><p class="biz-section-note">说明匹配对象、匹配方式与数据范围。</p></div><span class="biz-tag">Caliber</span></div><div class="info-list"><div class="info-row"><span class="info-label">匹配对象</span><span class="info-value">贵州茅台酒股份有限公司</span></div><div class="info-row"><span class="info-label">匹配方式</span><span class="info-value">企业资讯按企业主体匹配（keywordType=name）；行业/主题/全文检索按关键词匹配；sentimentLabel=1</span></div><div class="info-row"><span class="info-label">数据范围</span><span class="info-value">企业资讯查询、企业资讯监控、资讯全文检索、资讯主题跟踪</span></div><div class="info-row"><span class="info-label">局限说明</span><span class="info-value">数据来自公开新闻资讯；记录数不等于独立事件数，跨产品数量不可相加。全文检索、主题跟踪及企业资讯可能返回同题转载或相同记录，报告未执行跨产品去重。</span></div></div></section>
-    <section class="report-page biz-section"><div class="report-topbar"><div class="report-stripe"></div><div class="report-banner">资讯大数据报告</div></div><div class="biz-section-head"><div><h2>数据总览</h2><p class="biz-section-note">关键指标一览。</p></div><span class="biz-tag">Metrics</span></div><div class="biz-metrics"><div class="biz-metric"><span class="m-name">企业资讯数</span><span class="m-tag"></span><span class="m-value">776</span></div><div class="biz-metric"><span class="m-name">行业资讯数</span><span class="m-tag"></span><span class="m-value">8</span></div><div class="biz-metric"><span class="m-name">主题资讯数</span><span class="m-tag"></span><span class="m-value">8</span></div><div class="biz-metric"><span class="m-name">正面资讯</span><span class="m-tag t-neutral">占比 18%</span><span class="m-value">776</span></div><div class="biz-metric"><span class="m-name">负面资讯</span><span class="m-tag t-neutral">占比 15%</span><span class="m-value">632</span></div><div class="biz-metric"><span class="m-name">中性资讯</span><span class="m-tag t-neutral">占比 67%</span><span class="m-value">2851</span></div><div class="biz-metric"><span class="m-name">正面占比</span><span class="m-tag"></span><span class="m-value">18.1%</span></div><div class="biz-metric"><span class="m-name">舆情监控周期</span><span class="m-tag"></span><span class="m-value">12</span></div><div class="biz-metric"><span class="m-name">资讯来源数</span><span class="m-tag"></span><span class="m-value">6</span></div><div class="biz-metric"><span class="m-name">高频来源</span><span class="m-tag"></span><span class="m-value">证券之星（2篇）</span></div><div class="biz-metric-empty"></div><div class="biz-metric-empty"></div></div></section>
-    <section class="report-page biz-section"><div class="report-topbar"><div class="report-stripe"></div><div class="report-banner">资讯大数据报告</div></div><div class="biz-section-head"><div><h2>核心分析</h2><p class="biz-section-note">按维度展开目标核心数据与结构化明细。</p></div><span class="biz-tag">Analysis</span></div><h3 class="biz-subsection-title">企业资讯统计</h3><div class="info-list"><div class="info-row"><span class="info-label">正面</span><span class="info-value">776</span></div><div class="info-row"><span class="info-label">负面</span><span class="info-value">632</span></div><div class="info-row"><span class="info-label">中性</span><span class="info-value">2851</span></div><div class="info-row"><span class="info-label">未知</span><span class="info-value">28</span></div><div class="info-row"><span class="info-label">情感类别</span><span class="info-value">negative、positive、neutral</span></div></div>
-<p class="biz-section-note">按情感类别统计资讯数量占比</p><div class="chart-box"><h4 class="chart-title">资讯情感分布</h4><div class="chart-canvas" data-chart="pie" data-spec="{&quot;type&quot;:&quot;pie&quot;,&quot;donut&quot;:true,&quot;data&quot;:[{&quot;name&quot;:&quot;正面&quot;,&quot;value&quot;:776.0},{&quot;name&quot;:&quot;负面&quot;,&quot;value&quot;:632.0},{&quot;name&quot;:&quot;中性&quot;,&quot;value&quot;:2851.0},{&quot;name&quot;:&quot;未知&quot;,&quot;value&quot;:28.0}]}"></div><details class="chart-data"><summary>数据明细</summary><div class="table-wrap"><table><thead><tr><th>情感</th><th>数量</th></tr></thead><tbody><tr><td>正面</td><td>776</td></tr><tr><td>负面</td><td>632</td></tr><tr><td>中性</td><td>2851</td></tr><tr><td>未知</td><td>28</td></tr></tbody></table></div></details></div>
-<p class="biz-section-note">按月份统计情感分布</p><div class="chart-box"><h4 class="chart-title">舆情情感趋势</h4><div class="chart-canvas" data-chart="line" data-spec="{&quot;type&quot;:&quot;line&quot;,&quot;area&quot;:false,&quot;stack&quot;:false,&quot;x&quot;:[&quot;2025-06&quot;,&quot;2025-09&quot;,&quot;2025-11&quot;,&quot;2026-01&quot;,&quot;2026-02&quot;,&quot;2026-03&quot;,&quot;2026-04&quot;,&quot;2026-05&quot;,&quot;2026-06&quot;,&quot;2026-07&quot;,&quot;2026-08&quot;,&quot;2026-10&quot;],&quot;series&quot;:[{&quot;name&quot;:&quot;负面&quot;,&quot;data&quot;:[0.0,1.0,0.0,3.0,1.0,1.0,1.0,0.0,0.0,1.0,8.0,0.0]},{&quot;name&quot;:&quot;正面&quot;,&quot;data&quot;:[1.0,0.0,4.0,2.0,0.0,0.0,0.0,1.0,1.0,5.0,4.0,1.0]},{&quot;name&quot;:&quot;中性&quot;,&quot;data&quot;:[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]}]}"></div><details class="chart-data"><summary>数据明细</summary><div class="table-wrap"><table><thead><tr><th>周期/月份</th><th>负面</th><th>正面</th><th>中性</th></tr></thead><tbody><tr><td>2025-06</td><td>0</td><td>1</td><td>-</td></tr><tr><td>2025-09</td><td>1</td><td>0</td><td>-</td></tr><tr><td>2025-11</td><td>0</td><td>4</td><td>-</td></tr><tr><td>2026-01</td><td>3</td><td>2</td><td>-</td></tr><tr><td>2026-02</td><td>1</td><td>0</td><td>-</td></tr><tr><td>2026-03</td><td>1</td><td>0</td><td>-</td></tr><tr><td>2026-04</td><td>1</td><td>0</td><td>-</td></tr><tr><td>2026-05</td><td>0</td><td>1</td><td>-</td></tr><tr><td>2026-06</td><td>0</td><td>1</td><td>-</td></tr><tr><td>2026-07</td><td>1</td><td>5</td><td>-</td></tr><tr><td>2026-08</td><td>8</td><td>4</td><td>-</td></tr><tr><td>2026-10</td><td>0</td><td>1</td><td>-</td></tr></tbody></table></div></details></div>
+    <section class="report-page biz-section"><div class="report-topbar"><div class="report-stripe"></div><div class="report-banner">资讯大数据报告</div></div><div class="biz-section-head"><div><h2>数据总览</h2><p class="biz-section-note">关键指标一览。</p></div><span class="biz-tag">Metrics</span></div><div class="biz-metrics"><div class="biz-metric"><span class="m-name">企业资讯数</span><span class="m-tag"></span><span class="m-value">776</span><span class="m-hint">企业新闻舆情明细总数</span></div><div class="biz-metric"><span class="m-name">行业资讯数</span><span class="m-tag"></span><span class="m-value">8</span><span class="m-hint">行业资讯命中数</span></div><div class="biz-metric"><span class="m-name">主题资讯数</span><span class="m-tag"></span><span class="m-value">8</span><span class="m-hint">主题跟踪命中数</span></div><div class="biz-metric"><span class="m-name">正面资讯</span><span class="m-tag t-neutral">占比 18%</span><span class="m-value">776</span><span class="m-hint">正面情感资讯数</span></div><div class="biz-metric"><span class="m-name">负面资讯</span><span class="m-tag t-neutral">占比 15%</span><span class="m-value">632</span><span class="m-hint">负面情感资讯数</span></div><div class="biz-metric"><span class="m-name">中性资讯</span><span class="m-tag t-neutral">占比 67%</span><span class="m-value">2851</span><span class="m-hint">中性情感资讯数</span></div><div class="biz-metric"><span class="m-name">正面占比</span><span class="m-tag"></span><span class="m-value">18.1%</span><span class="m-hint">正面资讯占总资讯比例</span></div><div class="biz-metric"><span class="m-name">舆情监控周期</span><span class="m-tag"></span><span class="m-value">12</span><span class="m-hint">有情感数据的月份数</span></div><div class="biz-metric"><span class="m-name">资讯来源数</span><span class="m-tag"></span><span class="m-value">6</span><span class="m-hint">不同媒体/来源数</span></div><div class="biz-metric"><span class="m-name">高频来源</span><span class="m-tag"></span><span class="m-value">证券之星（2篇）</span><span class="m-hint">报道最多的媒体来源</span></div><div class="biz-metric-empty"></div><div class="biz-metric-empty"></div></div></section>
+    <section class="report-page biz-section"><div class="report-topbar"><div class="report-stripe"></div><div class="report-banner">资讯大数据报告</div></div><div class="biz-section-head"><div><h2>核心分析</h2><p class="biz-section-note">按维度展开目标核心数据与结构化明细。</p></div><span class="biz-tag">Analysis</span></div><h3 class="biz-subsection-title">企业资讯统计</h3><p class="biz-section-note">情感分布（正/负/中/未知）</p><div class="info-list"><div class="info-row"><span class="info-label">正面</span><span class="info-value">776</span></div><div class="info-row"><span class="info-label">负面</span><span class="info-value">632</span></div><div class="info-row"><span class="info-label">中性</span><span class="info-value">2851</span></div><div class="info-row"><span class="info-label">未知</span><span class="info-value">28</span></div><div class="info-row"><span class="info-label">情感类别</span><span class="info-value">negative、positive、neutral</span></div></div>
+<p class="biz-section-note">按情感类别统计资讯数量占比</p><div class="chart-box"><h4 class="chart-title">资讯情感分布</h4><div class="chart-frame" data-chart-state="static"><div class="chart-static"><svg width="984" height="300" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="full" viewBox="0 0 984 300">
+<rect width="984" height="300" x="0" y="0" fill="none"></rect>
+<polyline points="546.9 79.1 555 66.4 570 66.4" fill="transparent" stroke="#0b5ca8" class="zr0-cls-0"></polyline>
+<polyline points="594 168 608.9 168.5 623.9 168.5" fill="transparent" stroke="#0284c7" class="zr0-cls-0"></polyline>
+<polyline points="405.6 219.1 392.8 227.1 377.8 227.1" fill="transparent" stroke="#0b3768" class="zr0-cls-0"></polyline>
+<polyline points="489.9 63 489.6 48 474.6 48" fill="transparent" stroke="#d97706" class="zr0-cls-0"></polyline>
+<path d="M492 63A102 102 0 0 1 584.6 122.2L549.2 138.5A63 63 0 0 0 492 102Z" fill="#0b5ca8" stroke="#fff" stroke-width="2" stroke-linejoin="round" ecmeta_series_index="0" ecmeta_data_index="0" ecmeta_ssr_type="chart" class="zr0-cls-1"></path>
+<path d="M584.6 122.2A102 102 0 0 1 581.9 213.3L547.5 194.8A63 63 0 0 0 549.2 138.5Z" fill="#0284c7" stroke="#fff" stroke-width="2" stroke-linejoin="round" ecmeta_series_index="0" ecmeta_data_index="1" ecmeta_ssr_type="chart" class="zr0-cls-2"></path>
+<path d="M581.9 213.3A102 102 0 1 1 487.8 63.1L489.4 102.1A63 63 0 1 0 547.5 194.8Z" fill="#0b3768" stroke="#fff" stroke-width="2" stroke-linejoin="round" ecmeta_series_index="0" ecmeta_data_index="2" ecmeta_ssr_type="chart" class="zr0-cls-3"></path>
+<path d="M487.8 63.1A102 102 0 0 1 492 63L492 102A63 63 0 0 0 489.4 102.1Z" fill="#d97706" stroke="#fff" stroke-width="2" stroke-linejoin="round" ecmeta_series_index="0" ecmeta_data_index="3" ecmeta_ssr_type="chart" class="zr0-cls-4"></path>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" xml:space="preserve" transform="translate(575.0056 66.4135)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">正面: 776 (18.1%)</text>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" xml:space="preserve" transform="translate(628.9485 168.472)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">负面: 632 (14.74%)</text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" xml:space="preserve" transform="translate(372.8405 227.0999)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">中性: 2851 (66.51%)</text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" xml:space="preserve" transform="translate(469.5995 48.0246)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">未知: 28 (0.65%)</text>
+<path d="M-5 -5l252 0l0 26l-252 0Z" transform="translate(371 279)" fill="rgb(0,0,0)" fill-opacity="0" stroke="#ccc" stroke-width="0" class="zr0-cls-5"></path>
+<path d="M3.5 0L21.5 0A3.5 3.5 0 0 1 25 3.5L25 10.5A3.5 3.5 0 0 1 21.5 14L3.5 14A3.5 3.5 0 0 1 0 10.5L0 3.5A3.5 3.5 0 0 1 3.5 0" transform="translate(372 280)" fill="#0b5ca8" stroke="#fff" stroke-width="2" stroke-linecap="butt" stroke-miterlimit="10" stroke-linejoin="round" ecmeta_series_index="0" ecmeta_data_index="0" ecmeta_ssr_type="legend" ecmeta_silent="true" class="zr0-cls-5"></path>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" x="30" y="7" transform="translate(372 280)" fill="#333">正面</text>
+<path d="M-1 -1l53 0l0 16l-53 0Z" transform="translate(372 280)" fill="transparent" ecmeta_series_index="0" ecmeta_data_index="0" ecmeta_ssr_type="legend" class="zr0-cls-6"></path>
+<path d="M3.5 0L21.5 0A3.5 3.5 0 0 1 25 3.5L25 10.5A3.5 3.5 0 0 1 21.5 14L3.5 14A3.5 3.5 0 0 1 0 10.5L0 3.5A3.5 3.5 0 0 1 3.5 0" transform="translate(435 280)" fill="#0284c7" stroke="#fff" stroke-width="2" stroke-linecap="butt" stroke-miterlimit="10" stroke-linejoin="round" ecmeta_series_index="0" ecmeta_data_index="1" ecmeta_ssr_type="legend" ecmeta_silent="true" class="zr0-cls-5"></path>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" x="30" y="7" transform="translate(435 280)" fill="#333">负面</text>
+<path d="M-1 -1l53 0l0 16l-53 0Z" transform="translate(435 280)" fill="transparent" ecmeta_series_index="0" ecmeta_data_index="1" ecmeta_ssr_type="legend" class="zr0-cls-6"></path>
+<path d="M3.5 0L21.5 0A3.5 3.5 0 0 1 25 3.5L25 10.5A3.5 3.5 0 0 1 21.5 14L3.5 14A3.5 3.5 0 0 1 0 10.5L0 3.5A3.5 3.5 0 0 1 3.5 0" transform="translate(498 280)" fill="#0b3768" stroke="#fff" stroke-width="2" stroke-linecap="butt" stroke-miterlimit="10" stroke-linejoin="round" ecmeta_series_index="0" ecmeta_data_index="2" ecmeta_ssr_type="legend" ecmeta_silent="true" class="zr0-cls-5"></path>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" x="30" y="7" transform="translate(498 280)" fill="#333">中性</text>
+<path d="M-1 -1l53 0l0 16l-53 0Z" transform="translate(498 280)" fill="transparent" ecmeta_series_index="0" ecmeta_data_index="2" ecmeta_ssr_type="legend" class="zr0-cls-6"></path>
+<path d="M3.5 0L21.5 0A3.5 3.5 0 0 1 25 3.5L25 10.5A3.5 3.5 0 0 1 21.5 14L3.5 14A3.5 3.5 0 0 1 0 10.5L0 3.5A3.5 3.5 0 0 1 3.5 0" transform="translate(561 280)" fill="#d97706" stroke="#fff" stroke-width="2" stroke-linecap="butt" stroke-miterlimit="10" stroke-linejoin="round" ecmeta_series_index="0" ecmeta_data_index="3" ecmeta_ssr_type="legend" ecmeta_silent="true" class="zr0-cls-5"></path>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" x="30" y="7" transform="translate(561 280)" fill="#333">未知</text>
+<path d="M-1 -1l53 0l0 16l-53 0Z" transform="translate(561 280)" fill="transparent" ecmeta_series_index="0" ecmeta_data_index="3" ecmeta_ssr_type="legend" class="zr0-cls-6"></path>
+<style ><![CDATA[
+.zr0-cls-0:hover {
+cursor:pointer;
+}
+.zr0-cls-1:hover {
+cursor:pointer;
+fill:rgba(12,101,184,1);
+}
+.zr0-cls-2:hover {
+cursor:pointer;
+fill:rgba(2,145,218,1);
+}
+.zr0-cls-3:hover {
+cursor:pointer;
+fill:rgba(12,60,114,1);
+}
+.zr0-cls-4:hover {
+cursor:pointer;
+fill:rgba(238,130,6,1);
+}
+.zr0-cls-5:hover {
+pointer-events:none;
+}
+.zr0-cls-6:hover {
+cursor:pointer;
+fill:rgba(0,0,0,0);
+}
+
+]]>
+
+</style>
+</svg></div><div class="chart-canvas" data-chart="pie" data-spec="{&quot;type&quot;:&quot;pie&quot;,&quot;donut&quot;:true,&quot;data&quot;:[{&quot;name&quot;:&quot;正面&quot;,&quot;value&quot;:776.0},{&quot;name&quot;:&quot;负面&quot;,&quot;value&quot;:632.0},{&quot;name&quot;:&quot;中性&quot;,&quot;value&quot;:2851.0},{&quot;name&quot;:&quot;未知&quot;,&quot;value&quot;:28.0}]}"></div><p class="chart-status" aria-live="polite"></p></div><details class="chart-data"><summary>数据明细</summary><div class="table-wrap"><table><thead><tr><th>情感</th><th>数量</th></tr></thead><tbody><tr><td>正面</td><td>776</td></tr><tr><td>负面</td><td>632</td></tr><tr><td>中性</td><td>2851</td></tr><tr><td>未知</td><td>28</td></tr></tbody></table></div></details></div>
+<p class="biz-section-note">按月份统计情感分布</p><div class="chart-box"><h4 class="chart-title">舆情情感趋势</h4><div class="chart-frame" data-chart-state="static"><div class="chart-static"><svg width="984" height="300" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="full" viewBox="0 0 984 300">
+<rect width="984" height="300" x="0" y="0" fill="none"></rect>
+<path d="M48 260.5L960 260.5" fill="transparent" stroke="#E0E6F1" class="zr1-cls-7"></path>
+<path d="M48 202.5L960 202.5" fill="transparent" stroke="#E0E6F1" class="zr1-cls-7"></path>
+<path d="M48 145.5L960 145.5" fill="transparent" stroke="#E0E6F1" class="zr1-cls-7"></path>
+<path d="M48 87.5L960 87.5" fill="transparent" stroke="#E0E6F1" class="zr1-cls-7"></path>
+<path d="M48 30.5L960 30.5" fill="transparent" stroke="#E0E6F1" class="zr1-cls-7"></path>
+<path d="M48 260.5L960 260.5" fill="transparent" stroke="#6E7079" stroke-linecap="round" class="zr1-cls-7"></path>
+<path d="M48.5 260L48.5 265" fill="transparent" stroke="#6E7079" class="zr1-cls-7"></path>
+<path d="M124.5 260L124.5 265" fill="transparent" stroke="#6E7079" class="zr1-cls-7"></path>
+<path d="M200.5 260L200.5 265" fill="transparent" stroke="#6E7079" class="zr1-cls-7"></path>
+<path d="M276.5 260L276.5 265" fill="transparent" stroke="#6E7079" class="zr1-cls-7"></path>
+<path d="M352.5 260L352.5 265" fill="transparent" stroke="#6E7079" class="zr1-cls-7"></path>
+<path d="M428.5 260L428.5 265" fill="transparent" stroke="#6E7079" class="zr1-cls-7"></path>
+<path d="M504.5 260L504.5 265" fill="transparent" stroke="#6E7079" class="zr1-cls-7"></path>
+<path d="M580.5 260L580.5 265" fill="transparent" stroke="#6E7079" class="zr1-cls-7"></path>
+<path d="M656.5 260L656.5 265" fill="transparent" stroke="#6E7079" class="zr1-cls-7"></path>
+<path d="M732.5 260L732.5 265" fill="transparent" stroke="#6E7079" class="zr1-cls-7"></path>
+<path d="M808.5 260L808.5 265" fill="transparent" stroke="#6E7079" class="zr1-cls-7"></path>
+<path d="M884.5 260L884.5 265" fill="transparent" stroke="#6E7079" class="zr1-cls-7"></path>
+<path d="M960.5 260L960.5 265" fill="transparent" stroke="#6E7079" class="zr1-cls-7"></path>
+<text dominant-baseline="central" text-anchor="end" style="font-size:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" transform="translate(40 260)" fill="#334155">0</text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" transform="translate(40 202.5)" fill="#334155">2</text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" transform="translate(40 145)" fill="#334155">4</text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" transform="translate(40 87.5)" fill="#334155">6</text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" transform="translate(40 30)" fill="#334155">8</text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" transform="matrix(0.819,-0.574,0.574,0.819,86,268)" fill="#334155">2025-06</text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" transform="matrix(0.819,-0.574,0.574,0.819,162,268)" fill="#334155">2025-09</text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" transform="matrix(0.819,-0.574,0.574,0.819,238,268)" fill="#334155">2025-11</text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" transform="matrix(0.819,-0.574,0.574,0.819,314,268)" fill="#334155">2026-01</text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" transform="matrix(0.819,-0.574,0.574,0.819,390,268)" fill="#334155">2026-02</text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" transform="matrix(0.819,-0.574,0.574,0.819,466,268)" fill="#334155">2026-03</text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" transform="matrix(0.819,-0.574,0.574,0.819,542,268)" fill="#334155">2026-04</text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" transform="matrix(0.819,-0.574,0.574,0.819,618,268)" fill="#334155">2026-05</text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" transform="matrix(0.819,-0.574,0.574,0.819,694,268)" fill="#334155">2026-06</text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" transform="matrix(0.819,-0.574,0.574,0.819,770,268)" fill="#334155">2026-07</text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" transform="matrix(0.819,-0.574,0.574,0.819,846,268)" fill="#334155">2026-08</text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" transform="matrix(0.819,-0.574,0.574,0.819,922,268)" fill="#334155">2026-10</text>
+<g clip-path="url(#static-chart-1-zr1-c0)">
+<path d="M86 260C86 260 124 231.3 162 231.3C200 231.3 206.5 260 238 260C282.5 260 272.4 173.8 314 173.8C348.4 173.8 347.7 231.3 390 231.3C423.7 231.3 428 231.3 466 231.3C504 231.3 505.3 231.3 542 231.3C581.3 231.3 578.7 260 618 260C654.7 260 657.3 260 694 260C733.3 260 749.2 260 770 231.3C825.2 155.1 810.3 30 846 30C886.3 30 922 260 922 260" fill="transparent" stroke="#0b5ca8" stroke-width="2" stroke-linejoin="bevel" class="zr1-cls-9"></path>
+</g>
+<g clip-path="url(#static-chart-1-zr1-c1)">
+<path d="M86 231.3C86 231.3 133.8 260 162 260C209.8 260 193.1 145 238 145C269.1 145 276 173.8 314 202.5C352 231.3 347.7 260 390 260C423.7 260 428 260 466 260C504 260 505.3 260 542 260C581.3 260 578.7 231.3 618 231.3C654.7 231.3 667 231.3 694 231.3C743 231.3 722.2 116.3 770 116.3C798.2 116.3 814.5 121.2 846 145C890.5 178.7 922 231.3 922 231.3" fill="transparent" stroke="#0284c7" stroke-width="2" stroke-linejoin="bevel" class="zr1-cls-9"></path>
+</g>
+<g clip-path="url(#static-chart-1-zr1-c2)">
+<path d="M86 260C86 260 124 260 162 260C200 260 200 260 238 260C276 260 276 260 314 260C352 260 352 260 390 260C428 260 428 260 466 260C504 260 504 260 542 260C580 260 580 260 618 260C656 260 656 260 694 260C732 260 732 260 770 260C808 260 808 260 846 260C884 260 922 260 922 260" fill="transparent" stroke="#0b3768" stroke-width="2" stroke-linejoin="bevel" class="zr1-cls-9"></path>
+</g>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,86,260)" fill="#fff" stroke="#0b5ca8" ecmeta_series_index="0" ecmeta_data_index="0" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,162,231.25)" fill="#fff" stroke="#0b5ca8" ecmeta_series_index="0" ecmeta_data_index="1" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,238,260)" fill="#fff" stroke="#0b5ca8" ecmeta_series_index="0" ecmeta_data_index="2" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,314,173.75)" fill="#fff" stroke="#0b5ca8" ecmeta_series_index="0" ecmeta_data_index="3" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,390,231.25)" fill="#fff" stroke="#0b5ca8" ecmeta_series_index="0" ecmeta_data_index="4" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,466,231.25)" fill="#fff" stroke="#0b5ca8" ecmeta_series_index="0" ecmeta_data_index="5" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,542,231.25)" fill="#fff" stroke="#0b5ca8" ecmeta_series_index="0" ecmeta_data_index="6" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,618,260)" fill="#fff" stroke="#0b5ca8" ecmeta_series_index="0" ecmeta_data_index="7" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,694,260)" fill="#fff" stroke="#0b5ca8" ecmeta_series_index="0" ecmeta_data_index="8" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,770,231.25)" fill="#fff" stroke="#0b5ca8" ecmeta_series_index="0" ecmeta_data_index="9" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,846,30)" fill="#fff" stroke="#0b5ca8" ecmeta_series_index="0" ecmeta_data_index="10" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,922,260)" fill="#fff" stroke="#0b5ca8" ecmeta_series_index="0" ecmeta_data_index="11" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,86,231.25)" fill="#fff" stroke="#0284c7" ecmeta_series_index="1" ecmeta_data_index="0" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,162,260)" fill="#fff" stroke="#0284c7" ecmeta_series_index="1" ecmeta_data_index="1" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,238,145)" fill="#fff" stroke="#0284c7" ecmeta_series_index="1" ecmeta_data_index="2" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,314,202.5)" fill="#fff" stroke="#0284c7" ecmeta_series_index="1" ecmeta_data_index="3" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,390,260)" fill="#fff" stroke="#0284c7" ecmeta_series_index="1" ecmeta_data_index="4" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,466,260)" fill="#fff" stroke="#0284c7" ecmeta_series_index="1" ecmeta_data_index="5" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,542,260)" fill="#fff" stroke="#0284c7" ecmeta_series_index="1" ecmeta_data_index="6" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,618,231.25)" fill="#fff" stroke="#0284c7" ecmeta_series_index="1" ecmeta_data_index="7" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,694,231.25)" fill="#fff" stroke="#0284c7" ecmeta_series_index="1" ecmeta_data_index="8" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,770,116.25)" fill="#fff" stroke="#0284c7" ecmeta_series_index="1" ecmeta_data_index="9" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,846,145)" fill="#fff" stroke="#0284c7" ecmeta_series_index="1" ecmeta_data_index="10" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,922,231.25)" fill="#fff" stroke="#0284c7" ecmeta_series_index="1" ecmeta_data_index="11" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,86,260)" fill="#fff" stroke="#0b3768" ecmeta_series_index="2" ecmeta_data_index="0" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,162,260)" fill="#fff" stroke="#0b3768" ecmeta_series_index="2" ecmeta_data_index="1" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,238,260)" fill="#fff" stroke="#0b3768" ecmeta_series_index="2" ecmeta_data_index="2" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,314,260)" fill="#fff" stroke="#0b3768" ecmeta_series_index="2" ecmeta_data_index="3" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,390,260)" fill="#fff" stroke="#0b3768" ecmeta_series_index="2" ecmeta_data_index="4" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,466,260)" fill="#fff" stroke="#0b3768" ecmeta_series_index="2" ecmeta_data_index="5" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,542,260)" fill="#fff" stroke="#0b3768" ecmeta_series_index="2" ecmeta_data_index="6" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,618,260)" fill="#fff" stroke="#0b3768" ecmeta_series_index="2" ecmeta_data_index="7" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,694,260)" fill="#fff" stroke="#0b3768" ecmeta_series_index="2" ecmeta_data_index="8" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,770,260)" fill="#fff" stroke="#0b3768" ecmeta_series_index="2" ecmeta_data_index="9" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,846,260)" fill="#fff" stroke="#0b3768" ecmeta_series_index="2" ecmeta_data_index="10" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(2,0,0,2,922,260)" fill="#fff" stroke="#0b3768" ecmeta_series_index="2" ecmeta_data_index="11" ecmeta_ssr_type="chart" class="zr1-cls-10"></path>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(86 252)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">0</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(162 223.25)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">1</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(238 252)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">0</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(314 165.75)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">3</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(390 223.25)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">1</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(466 223.25)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">1</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(542 223.25)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">1</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(618 252)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">0</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(694 252)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">0</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(770 223.25)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">1</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(846 22)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">8</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(922 252)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">0</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(86 223.25)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">1</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(162 252)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">0</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(238 137)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">4</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(314 194.5)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">2</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(390 252)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">0</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(466 252)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">0</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(542 252)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">0</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(618 223.25)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">1</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(694 223.25)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">1</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(770 108.25)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">5</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(846 137)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">4</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(922 223.25)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">1</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(86 252)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">0</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(162 252)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">0</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(238 252)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">0</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(314 252)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">0</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(390 252)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">0</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(466 252)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">0</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(542 252)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">0</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(618 252)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">0</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(694 252)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">0</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(770 252)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">0</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(846 252)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">0</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" y="-5.5" transform="translate(922 252)" fill="#333" stroke="rgb(255,255,255)" stroke-width="2" paint-order="stroke" stroke-miterlimit="2">0</text>
+<path d="M-5 -5l189 0l0 23.2l-189 0Z" transform="translate(402.5 5)" fill="rgb(0,0,0)" fill-opacity="0" stroke="#ccc" stroke-width="0" class="zr1-cls-7"></path>
+<path d="M0 7L25 7" transform="translate(403.5 4.6)" fill="#000" stroke="#0b5ca8" stroke-width="2" stroke-linecap="butt" stroke-miterlimit="10" class="zr1-cls-7"></path>
+<path d="M18.1 7A5.6 5.6 0 1 1 18.1 6.4A5.6 5.6 0 0 1 18.1 7" transform="translate(403.5 4.6)" fill="#fff" stroke="#0b5ca8" stroke-width="2" stroke-linecap="butt" stroke-miterlimit="10" class="zr1-cls-7"></path>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" x="30" y="7" transform="translate(403.5 4.6)" fill="#333">负面</text>
+<path d="M-1 0.4l53 0l0 13.2l-53 0Z" transform="translate(403.5 4.6)" fill="transparent" ecmeta_series_index="0" ecmeta_data_index="0" ecmeta_ssr_type="legend" class="zr1-cls-11"></path>
+<path d="M0 7L25 7" transform="translate(466.5 4.6)" fill="#000" stroke="#0284c7" stroke-width="2" stroke-linecap="butt" stroke-miterlimit="10" class="zr1-cls-7"></path>
+<path d="M18.1 7A5.6 5.6 0 1 1 18.1 6.4A5.6 5.6 0 0 1 18.1 7" transform="translate(466.5 4.6)" fill="#fff" stroke="#0284c7" stroke-width="2" stroke-linecap="butt" stroke-miterlimit="10" class="zr1-cls-7"></path>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" x="30" y="7" transform="translate(466.5 4.6)" fill="#333">正面</text>
+<path d="M-1 0.4l53 0l0 13.2l-53 0Z" transform="translate(466.5 4.6)" fill="transparent" ecmeta_series_index="1" ecmeta_data_index="1" ecmeta_ssr_type="legend" class="zr1-cls-11"></path>
+<path d="M0 7L25 7" transform="translate(529.5 4.6)" fill="#000" stroke="#0b3768" stroke-width="2" stroke-linecap="butt" stroke-miterlimit="10" class="zr1-cls-7"></path>
+<path d="M18.1 7A5.6 5.6 0 1 1 18.1 6.4A5.6 5.6 0 0 1 18.1 7" transform="translate(529.5 4.6)" fill="#fff" stroke="#0b3768" stroke-width="2" stroke-linecap="butt" stroke-miterlimit="10" class="zr1-cls-7"></path>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;" x="30" y="7" transform="translate(529.5 4.6)" fill="#333">中性</text>
+<path d="M-1 0.4l53 0l0 13.2l-53 0Z" transform="translate(529.5 4.6)" fill="transparent" ecmeta_series_index="2" ecmeta_data_index="2" ecmeta_ssr_type="legend" class="zr1-cls-11"></path>
+<defs >
+<clipPath id="static-chart-1-zr1-c0">
+<path d="M47 29l914 0l0 232l-914 0Z" fill="#000" class="zr1-cls-8"></path>
+</clipPath>
+<clipPath id="static-chart-1-zr1-c1">
+<path d="M47 29l914 0l0 232l-914 0Z" fill="#000" class="zr1-cls-8"></path>
+</clipPath>
+<clipPath id="static-chart-1-zr1-c2">
+<path d="M47 29l914 0l0 232l-914 0Z" fill="#000" class="zr1-cls-8"></path>
+</clipPath>
+</defs>
+<style ><![CDATA[
+.zr1-cls-7:hover {
+pointer-events:none;
+}
+.zr1-cls-8:hover {
+cursor:pointer;
+fill:rgba(0,0,0,1);
+}
+.zr1-cls-9:hover {
+cursor:pointer;
+}
+.zr1-cls-10:hover {
+cursor:pointer;
+fill:rgba(255,255,255,1);
+}
+.zr1-cls-11:hover {
+cursor:pointer;
+fill:rgba(0,0,0,0);
+}
+
+]]>
+
+</style>
+</svg></div><div class="chart-canvas" data-chart="line" data-spec="{&quot;type&quot;:&quot;line&quot;,&quot;area&quot;:false,&quot;stack&quot;:false,&quot;x&quot;:[&quot;2025-06&quot;,&quot;2025-09&quot;,&quot;2025-11&quot;,&quot;2026-01&quot;,&quot;2026-02&quot;,&quot;2026-03&quot;,&quot;2026-04&quot;,&quot;2026-05&quot;,&quot;2026-06&quot;,&quot;2026-07&quot;,&quot;2026-08&quot;,&quot;2026-10&quot;],&quot;series&quot;:[{&quot;name&quot;:&quot;负面&quot;,&quot;data&quot;:[0.0,1.0,0.0,3.0,1.0,1.0,1.0,0.0,0.0,1.0,8.0,0.0]},{&quot;name&quot;:&quot;正面&quot;,&quot;data&quot;:[1.0,0.0,4.0,2.0,0.0,0.0,0.0,1.0,1.0,5.0,4.0,1.0]},{&quot;name&quot;:&quot;中性&quot;,&quot;data&quot;:[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]}]}"></div><p class="chart-status" aria-live="polite"></p></div><details class="chart-data"><summary>数据明细</summary><div class="table-wrap"><table><thead><tr><th>周期/月份</th><th>负面</th><th>正面</th><th>中性</th></tr></thead><tbody><tr><td>2025-06</td><td>0</td><td>1</td><td>-</td></tr><tr><td>2025-09</td><td>1</td><td>0</td><td>-</td></tr><tr><td>2025-11</td><td>0</td><td>4</td><td>-</td></tr><tr><td>2026-01</td><td>3</td><td>2</td><td>-</td></tr><tr><td>2026-02</td><td>1</td><td>0</td><td>-</td></tr><tr><td>2026-03</td><td>1</td><td>0</td><td>-</td></tr><tr><td>2026-04</td><td>1</td><td>0</td><td>-</td></tr><tr><td>2026-05</td><td>0</td><td>1</td><td>-</td></tr><tr><td>2026-06</td><td>0</td><td>1</td><td>-</td></tr><tr><td>2026-07</td><td>1</td><td>5</td><td>-</td></tr><tr><td>2026-08</td><td>8</td><td>4</td><td>-</td></tr><tr><td>2026-10</td><td>0</td><td>1</td><td>-</td></tr></tbody></table></div></details></div>
 <h3 class="biz-subsection-title">企业资讯明细</h3><p class="biz-section-note">命中 776 条；sentimentLabel=1</p><div class="table-wrap"><table><thead><tr><th>标题</th><th>来源</th><th>发布时间</th><th>情感</th><th>链接</th><th>简介</th></tr></thead><tbody><tr><td>华茅酒新品重磅上市 开启品牌新征程</td><td>腾讯网</td><td>2026-10-17</td><td>正面</td><td><a class="source-link" href="http://new.qq.com/rain/a/20261017A0747P00" target="_blank" rel="noopener">http://new.qq.com/rain/a/20261017A0747P00</a></td><td>10月15日,贵州茅台酒股份有限公司出品的53%vol 500ml华茅酒新品正式上市.此次新品在i茅台平台首发,后续稳步拓展经销网络的销售体系,已成为茅台酱.…</td></tr><tr><td>2020年《财富》中国500强排行榜</td><td>财富中文网</td><td>2026-08-27</td><td>正面</td><td><a class="source-link" href="http://www.fortunechina.com/fortune500/c/2020-07/27/content_369925.htm" target="_blank" rel="noopener">http://www.fortunechina.com/fortune500/c/2020-07/27/content_369925.htm</a></td><td>分别是佛山市海天调味食品股份有限公司、温氏食品集团股份有限公司、贵州茅台酒股份有限公司. 长江商学院李伟教授在今年的分析中指出“资源错配”的问题:国有企业占据…</td></tr><tr><td>创新小成果激活茅台制酒车间大动能——贵州茅台酒股份有限公司...</td><td>天眼新闻</td><td>2026-08-19</td><td>正面</td><td><a class="source-link" href="http://baijiahao.baidu.com/s?id=1873923965904607995&amp;wfr=spider&amp;for=pc" target="_blank" rel="noopener">http://baijiahao.baidu.com/s?id=1873923965904607995&amp;wfr=spider&amp;for=pc</a></td><td>7天前质量为本,创新为魂。近年来,贵州茅台酒股份有限公司制酒五车间依托“郑国风 王宗良劳模创新工作室(省级)”,立足车间生产实际,扎实推进质量管理小组活动走深…</td></tr><tr><td>财报快递|贵州茅台2026年半年报增收不增利,成本增逾两成,净利同...</td><td>证券之星</td><td>2026-08-15</td><td>正面</td><td><a class="source-link" href="http://stock.stockstar.com/RB2026081500002035.shtml" target="_blank" rel="noopener">http://stock.stockstar.com/RB2026081500002035.shtml</a></td><td>贵州茅台酒股份有限公司(600519)发布2026年半年度报告,公司上半年实现营业总收入922.78亿元,同比增长1.3%;实现营业收入907.03亿元,同比…</td></tr><tr><td>贵州茅台上半年净利微降,i茅台收入超400亿元.</td><td>搜狐</td><td>2026-08-15</td><td>正面</td><td><a class="source-link" href="http://www.sohu.com/a/1063102313_260616" target="_blank" rel="noopener">http://www.sohu.com/a/1063102313_260616</a></td><td>8月14日晚间,贵州茅台酒股份有限公司(贵州茅台,600519.SH)披露2026年半年度报告,报告期内,公司实现营业总收入922.78亿元,同比增长1.3%…</td></tr><tr><td>界面新闻-只服务于独立思考的人群-Jiemian.com</td><td>界面新闻</td><td>2026-07-20</td><td>正面</td><td><a class="source-link" href="http://www.jiemian.com/company/2011.html" target="_blank" rel="noopener">http://www.jiemian.com/company/2011.html</a></td><td>贵州茅台酒股份有限公司决定向广西慈善联合总会捐赠1000万元现金,用于支持广西洪涝灾害救灾及灾后恢复工作.(贵州日报) 6月30日,i茅台宣布茅台酒...</td></tr><tr><td>贵州茅台捐赠1000万元支援广西洪涝灾害救灾行动</td><td>证券之星</td><td>2026-07-08</td><td>正面</td><td><a class="source-link" href="http://stock.stockstar.com/SS2026070800010267.shtml" target="_blank" rel="noopener">http://stock.stockstar.com/SS2026070800010267.shtml</a></td><td>7月7日,天眼新闻获悉,贵州茅台酒股份有限公司决定向广西慈善联合总会捐赠1000万元现金,用于支持广西洪涝灾害救灾及灾后恢复工作. 广告 精彩推荐 下载 证券…</td></tr><tr><td>贵州茅台捐赠1000万元支援广西洪涝灾害救灾行动</td><td>界面新闻</td><td>2026-07-08</td><td>正面</td><td><a class="source-link" href="http://www.jiemian.com/article/14721973.html" target="_blank" rel="noopener">http://www.jiemian.com/article/14721973.html</a></td><td>7月7日,记者获悉,贵州茅台酒股份有限公司决定向广西慈善联合总会捐赠1000万元现金,用于支持广西洪涝灾害救灾及灾后恢复工作.(贵州日报)</td></tr></tbody></table></div>
 <h3 class="biz-subsection-title">关联共现企业</h3><p class="biz-section-note">企业资讯中高频共现的关联实体（来源：relatedEnterprises，已排除自身）</p><div class="table-wrap"><table><thead><tr><th>企业名称</th><th>类型</th><th>共现次数</th></tr></thead><tbody><tr><td>物产中大集团股份有限公司</td><td>enterprise</td><td>1</td></tr><tr><td>温氏食品集团股份有限公司</td><td>enterprise</td><td>1</td></tr><tr><td>佛山市海天调味食品股份有限公司</td><td>enterprise</td><td>1</td></tr><tr><td>青海盐湖工业股份有限公司</td><td>enterprise</td><td>1</td></tr><tr><td>上海寻梦信息技术有限公司</td><td>enterprise</td><td>1</td></tr><tr><td>深圳清华大学研究院</td><td>enterprise</td><td>1</td></tr></tbody></table></div>
 <h3 class="biz-subsection-title">全文检索资讯</h3><p class="biz-section-note">命中 8 条（information_search 全文检索）</p><div class="table-wrap"><table><thead><tr><th>标题</th><th>来源</th><th>发布时间</th><th>情感</th><th>链接</th><th>简介</th></tr></thead><tbody><tr><td>茅台回应被执行158万元：系第三方公司内部纠纷，法院认定不承担责任</td><td>腾讯网</td><td>2026-09-16T15:24:16</td><td>-</td><td><a class="source-link" href="https://news.qq.com/rain/a/20260916A09HZT00" target="_blank" rel="noopener">https://news.qq.com/rain/a/20260916A09HZT00</a></td><td>-</td></tr><tr><td>贵州茅台集团党委原副书记赵书跃退休八年后被查</td><td>联合早报</td><td>2026-08-14T16:14:15</td><td>-</td><td><a class="source-link" href="https://www.zaobao.com/news/china/story20260814-9519650" target="_blank" rel="noopener">https://www.zaobao.com/news/china/story20260814-9519650</a></td><td>-</td></tr><tr><td>茅台回应“茅台1935”产地争议，产品市场价格已一跌再跌</td><td>腾讯网</td><td>2026-06-16T05:51:11</td><td>-</td><td><a class="source-link" href="https://news.qq.com/rain/a/20260616A01HMX00" target="_blank" rel="noopener">https://news.qq.com/rain/a/20260616A01HMX00</a></td><td>-</td></tr><tr><td>不到2个月，茅台再涨价</td><td>腾讯网</td><td>2026-05-16T16:50:06</td><td>-</td><td><a class="source-link" href="https://news.qq.com/rain/a/20260516A07ADS00" target="_blank" rel="noopener">https://news.qq.com/rain/a/20260516A07ADS00</a></td><td>-</td></tr><tr><td>贵州茅台实施新一轮提价：精品茅台涨价60元，马茅珍享版涨价200元</td><td>腾讯网</td><td>2026-05-16T07:09:39</td><td>-</td><td><a class="source-link" href="https://news.qq.com/rain/a/20260516A027ID00" target="_blank" rel="noopener">https://news.qq.com/rain/a/20260516A027ID00</a></td><td>-</td></tr><tr><td>茅台今起涨价</td><td>腾讯网</td><td>2026-05-16T07:09:28</td><td>-</td><td><a class="source-link" href="https://news.qq.com/rain/a/20260516A0282700" target="_blank" rel="noopener">https://news.qq.com/rain/a/20260516A0282700</a></td><td>-</td></tr><tr><td>飞天茅台自营体系零售价涨至1539元，对渠道商和消费者意味着什么</td><td>腾讯网</td><td>2026-03-30T20:58:28</td><td>-</td><td><a class="source-link" href="https://news.qq.com/rain/a/20260330A08IPE00" target="_blank" rel="noopener">https://news.qq.com/rain/a/20260330A08IPE00</a></td><td>-</td></tr><tr><td>茅台宣布涨价</td><td>腾讯网</td><td>2026-03-30T19:49:36</td><td>-</td><td><a class="source-link" href="https://news.qq.com/rain/a/20260330A08A6V00" target="_blank" rel="noopener">https://news.qq.com/rain/a/20260330A08A6V00</a></td><td>-</td></tr></tbody></table></div>
